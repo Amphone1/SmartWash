@@ -1,0 +1,23 @@
+{
+  "name": "ocr",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/ocr/app",
+  "projectType": "application",
+  "tags": ["lang:python"],
+  "targets": {
+    "pytest": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "services/ocr",
+        "command": "python -m pytest -q"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "services/ocr",
+        "command": "uvicorn app.main:app --reload --port 8001"
+      }
+    }
+  }
+}

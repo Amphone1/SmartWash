@@ -1,0 +1,23 @@
+{
+  "name": "risk",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/risk/app",
+  "projectType": "application",
+  "tags": ["lang:python"],
+  "targets": {
+    "pytest": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "services/risk",
+        "command": "python -m pytest -q"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "services/risk",
+        "command": "uvicorn app.main:app --reload --port 8002"
+      }
+    }
+  }
+}
