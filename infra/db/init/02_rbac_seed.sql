@@ -67,12 +67,14 @@ WHERE r.name = 'staff'
                  'machine.maintenance','queue.manage')
 ON CONFLICT DO NOTHING;
 
--- owner (branch oversight)
+-- owner (branch oversight). Owners may clear payments (slip approve/reject) and
+-- issue refunds at their branch, in addition to oversight perms.
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.name = 'owner'
   AND p.code IN ('branch.view','report.view','settlement.view',
-                 'staff.payout','machine.manage','order.view.branch')
+                 'staff.payout','machine.manage','order.view.branch',
+                 'slip.approve','slip.reject','order.refund')
 ON CONFLICT DO NOTHING;
 
 -- admin: every permission (global). New permissions auto-granted on re-run.

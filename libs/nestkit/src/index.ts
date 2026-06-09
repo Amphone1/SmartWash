@@ -9,3 +9,4 @@ export * from './db/outbox';
 export * from './redis/redis';
 export * from './idempotency/idempotency.service';
 export * from './errors/domain-exception.filter';
+export * from './auth/internal-token.guard';

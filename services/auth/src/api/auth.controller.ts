@@ -14,6 +14,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { InternalTokenGuard } from '@smartwash/nestkit';
 import { AuthService } from '../application/auth.service';
 import { JwtAuthGuard, type AuthedRequest } from './jwt-auth.guard';
 import { IntrospectDto } from './dto';
@@ -31,6 +32,7 @@ export class AuthController {
   }
 
   @Post('introspect')
+  @UseGuards(InternalTokenGuard)
   introspect(@Body() body: IntrospectDto): Promise<AuthenticatedUser> {
     return this.auth.authenticate(body.token);
   }
