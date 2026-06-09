@@ -1,0 +1,34 @@
+{
+  "name": "wallet",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/wallet/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "tsc -p services/wallet/tsconfig.app.json",
+          "node tools/build-service.mjs wallet"
+        ],
+        "parallel": false
+      },
+      "outputs": ["{workspaceRoot}/dist/services/wallet"],
+      "cache": true
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project services/wallet/tsconfig.app.json -r tsconfig-paths/register services/wallet/src/main.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint services/wallet/src --max-warnings 0" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "jest --config services/wallet/jest.config.ts" }
+    }
+  }
+}
