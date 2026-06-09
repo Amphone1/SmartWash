@@ -1,0 +1,34 @@
+{
+  "name": "bff",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/bff/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "tsc -p services/bff/tsconfig.app.json",
+          "node tools/build-service.mjs bff"
+        ],
+        "parallel": false
+      },
+      "outputs": ["{workspaceRoot}/dist/services/bff"],
+      "cache": true
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project services/bff/tsconfig.app.json -r tsconfig-paths/register services/bff/src/main.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint services/bff/src --max-warnings 0" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "jest --config services/bff/jest.config.ts" }
+    }
+  }
+}

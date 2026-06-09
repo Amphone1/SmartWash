@@ -1,0 +1,31 @@
+# Traefik dynamic config (file provider). Only the public edges are routed here:
+# the BFF (customer app aggregator) and Auth (token endpoints). Order, Queue and
+# RBAC are intentionally NOT exposed — they're internal-only on the compose
+# network, reachable solely by the BFF with the shared internal token.
+http:
+  middlewares:
+    strip-api:
+      stripPrefix:
+        prefixes: ["/api"]
+
+  routers:
+    bff:
+      rule: "PathPrefix(`/api/bff`)"
+      entryPoints: ["web"]
+      middlewares: ["strip-api"]
+      service: bff
+    auth:
+      rule: "PathPrefix(`/api/auth`)"
+      entryPoints: ["web"]
+      middlewares: ["strip-api"]
+      service: auth
+
+  services:
+    bff:
+      loadBalancer:
+        servers:
+          - url: "http://bff:3005"
+    auth:
+      loadBalancer:
+        servers:
+          - url: "http://auth:3001"
