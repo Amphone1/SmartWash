@@ -1,0 +1,19 @@
+{
+  "name": "customer-app",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/customer-app",
+  "projectType": "application",
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/customer-app",
+        "command": "tsc --noEmit"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": { "cwd": "apps/customer-app", "command": "expo start" }
+    }
+  }
+}

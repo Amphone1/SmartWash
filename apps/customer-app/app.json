@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "SmartWash",
+    "slug": "smartwash-customer",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "smartwash",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0EA5E9"
+    },
+    "ios": { "supportsTablet": true },
+    "android": {
+      "package": "com.smartwash.customer"
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:8088/api"
+    }
+  }
+}
