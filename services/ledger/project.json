@@ -1,0 +1,34 @@
+{
+  "name": "ledger",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/ledger/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "tsc -p services/ledger/tsconfig.app.json",
+          "node tools/build-service.mjs ledger"
+        ],
+        "parallel": false
+      },
+      "outputs": ["{workspaceRoot}/dist/services/ledger"],
+      "cache": true
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project services/ledger/tsconfig.app.json -r tsconfig-paths/register services/ledger/src/main.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint services/ledger/src --max-warnings 0" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "jest --config services/ledger/jest.config.ts" }
+    }
+  }
+}
