@@ -47,12 +47,16 @@ export class RedisLock implements OnModuleDestroy, ReadinessCheck {
     return (await this.redis.ping()) === 'PONG';
   }
 
-  /** Returns a Lock if acquired, or null if the key is already held. */
+  /**
+   * Returns a Lock if acquired, or null if the key is already held.
+   * `token` identifies the owner; pass a stable value (e.g. an order id) when
+   * the holder must be able to release later from a different request.
+   */
   async acquire(
     key: string,
     ttlSeconds = RESERVATION_TTL_SECONDS,
+    token: string = randomUUID(),
   ): Promise<Lock | null> {
-    const token = randomUUID();
     const ok = await this.redis.set(key, token, 'EX', ttlSeconds, 'NX');
     return ok === 'OK' ? { key, token } : null;
   }
