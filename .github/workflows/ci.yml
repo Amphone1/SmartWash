@@ -38,12 +38,18 @@ jobs:
       - name: Validate OpenAPI + event schemas
         run: npx nx run contracts:validate
 
-  docker:
+  build:
     needs: build-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      - name: Build affected images
-        run: npx nx affected -t docker
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Build affected services (esbuild bundles)
+        run: npx nx affected -t build --base=HEAD~1 --head=HEAD
+      # Phase 6: build + push Docker images and deploy to k3s.
+      # - name: Build affected images
+      #   run: npx nx affected -t docker
       # - name: Push + deploy to k3s   (add registry + kubeconfig secrets)
