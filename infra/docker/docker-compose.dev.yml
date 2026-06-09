@@ -1,0 +1,92 @@
+# SmartWash — local dev infrastructure. `docker compose up -d`
+# Services (NestJS/FastAPI/Go) are added per phase; this brings up dependencies.
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_DB: smartwash
+      POSTGRES_USER: smartwash
+      POSTGRES_PASSWORD: change_me
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../db/init:/docker-entrypoint-initdb.d   # place smartwash_schema.sql here
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartwash"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    command: ["redis-server", "--appendonly", "yes"]
+
+  nats:
+    image: nats:2-alpine
+    command: ["-js", "-m", "8222"]
+    ports: ["4222:4222", "8222:8222"]
+
+  emqx:
+    image: emqx/emqx:5
+    ports: ["1883:1883", "18083:18083"]   # mqtt + dashboard
+    environment:
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: change_me
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: change_me
+      MINIO_ROOT_PASSWORD: change_me
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/data]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    command: ["start-dev"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: change_me
+    ports: ["8080:8080"]
+
+  temporal:
+    image: temporalio/auto-setup:1.24
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: smartwash
+      POSTGRES_PWD: change_me
+      POSTGRES_SEEDS: postgres
+    ports: ["7233:7233"]
+    depends_on: [postgres]
+
+  # ── Observability ──────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+    volumes: ["../observability/prometheus.yml:/etc/prometheus/prometheus.yml"]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3001:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: change_me
+
+  loki:
+    image: grafana/loki:latest
+    ports: ["3100:3100"]
+
+  tempo:
+    image: grafana/tempo:latest
+    command: ["-config.file=/etc/tempo.yaml"]
+    ports: ["4318:4318"]   # OTLP http
+    volumes: ["../observability/tempo.yaml:/etc/tempo.yaml"]
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports: ["9093:9093"]
+
+volumes:
+  pgdata:
+  miniodata:

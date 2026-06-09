@@ -1,0 +1,49 @@
+name: ci
+on:
+  push: { branches: [main, develop] }
+  pull_request: { branches: [main, develop] }
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_DB: smartwash
+          POSTGRES_USER: smartwash
+          POSTGRES_PASSWORD: change_me
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U smartwash"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Lint
+        run: npx nx run-many -t lint
+      - name: Migrate (apply schema)
+        run: npx nx run db:migrate
+        env: { DATABASE_URL: postgresql://smartwash:change_me@localhost:5432/smartwash }
+      - name: Unit + integration tests
+        run: npx nx run-many -t test
+        env:
+          DATABASE_URL: postgresql://smartwash:change_me@localhost:5432/smartwash
+          REDIS_URL: redis://localhost:6379
+      - name: Validate OpenAPI + event schemas
+        run: npx nx run contracts:validate
+
+  docker:
+    needs: build-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build affected images
+        run: npx nx affected -t docker
+      # - name: Push + deploy to k3s   (add registry + kubeconfig secrets)

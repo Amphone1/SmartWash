@@ -1,0 +1,78 @@
+openapi: 3.1.0
+info:
+  title: SmartWash Order Service
+  version: 1.0.0
+  description: >
+    Owns orders + order_events. Reserves a machine (Redis SETNX), tracks the
+    Order FSM. Publishes OrderCreated/OrderPaid/OrderCompleted/OrderCancelled.
+    Consumes PaymentApproved, MachineRunning, MachineFinished.
+servers:
+  - url: /api/order/v1
+paths:
+  /orders:
+    post:
+      summary: Create order and reserve machine
+      operationId: createOrder
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrder' }
+      responses:
+        '201': { description: reserved, content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } } }
+        '409': { description: machine already locked }
+  /orders/{id}:
+    get:
+      summary: Get order
+      operationId: getOrder
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } } }
+        '404': { description: not found }
+  /orders/{id}/cancel:
+    post:
+      summary: Cancel a reserved/pending order
+      operationId: cancelOrder
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      responses:
+        '200': { description: cancelled }
+        '409': { description: not cancellable in current state }
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    OrderType: { type: string, enum: [self_service, pickup, delivery] }
+    OrderState:
+      type: string
+      enum: [CREATED, RESERVED, PAYMENT_PENDING, AWAITING_APPROVAL, PAID, RUNNING,
+             COMPLETED, FAILED, CANCELLED, EXPIRED, REJECTED, REFUND_PENDING, REFUNDED]
+    CreateOrder:
+      type: object
+      required: [userId, branchId, machineId, type]
+      properties:
+        userId:    { type: string, format: uuid }
+        branchId:  { type: string, format: uuid }
+        machineId: { type: string, format: uuid }
+        type:      { $ref: '#/components/schemas/OrderType' }
+        cycle:     { type: string, enum: [quick, normal, heavy] }
+        addons:    { type: array, items: { type: string } }
+    Order:
+      type: object
+      properties:
+        id:        { type: string, format: uuid }
+        userId:    { type: string, format: uuid }
+        branchId:  { type: string, format: uuid }
+        machineId: { type: string, format: uuid }
+        type:      { $ref: '#/components/schemas/OrderType' }
+        state:     { $ref: '#/components/schemas/OrderState' }
+        subtotal:  { type: integer, format: int64, description: kip }
+        vat:       { type: integer, format: int64, description: kip }
+        total:     { type: integer, format: int64, description: kip }
+        createdAt: { type: string, format: date-time }

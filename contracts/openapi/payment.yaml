@@ -1,0 +1,83 @@
+openapi: 3.1.0
+info:
+  title: SmartWash Payment Service
+  version: 1.0.0
+  description: >
+    Owner-QR + slip model (No Bank API). Owns payment_requests + slips.
+    Generates QR, accepts slip upload, drives OCR + Fraud + Risk, then asks
+    Ledger to TOPUP. Publishes SlipUploaded/PaymentApproved/PaymentRejected.
+servers:
+  - url: /api/payment/v1
+paths:
+  /payments:
+    post:
+      summary: Create a payment request (Owner QR) for topup or an order
+      operationId: createPaymentRequest
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, type, amount]
+              properties:
+                userId:  { type: string, format: uuid }
+                type:    { type: string, enum: [topup, order] }
+                orderId: { type: string, format: uuid, description: required when type=order }
+                amount:  { type: integer, format: int64, description: expected kip }
+      responses:
+        '201':
+          description: QR issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qrRef:     { type: string }
+                  qrPayload: { type: string, description: EMV/bank QR string }
+                  amount:    { type: integer, format: int64 }
+                  expiresAt: { type: string, format: date-time }
+  /payments/{qrRef}/slip:
+    post:
+      summary: Upload payment slip for verification
+      operationId: uploadSlip
+      parameters:
+        - { name: qrRef, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [imageObjectKey, slipHash]
+              properties:
+                imageObjectKey: { type: string, description: MinIO object key (client pre-uploads) }
+                slipHash:       { type: string, description: SHA-256 of image bytes (fraud dedup) }
+      responses:
+        '202': { description: accepted for verification, content: { application/json: { schema: { $ref: '#/components/schemas/SlipStatus' } } } }
+        '409': { description: duplicate slip (slipHash seen before) }
+  /payments/{qrRef}:
+    get:
+      summary: Poll payment request status
+      operationId: getPayment
+      parameters: [{ name: qrRef, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/SlipStatus' } } } }
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    SlipStatus:
+      type: object
+      properties:
+        qrRef:        { type: string }
+        state:        { type: string, enum: [PENDING, SLIP_UPLOADED, AWAITING_APPROVAL, APPROVED, REJECTED, EXPIRED] }
+        ocrAmount:    { type: integer, format: int64 }
+        ocrConfidence: { type: number }
+        fraudState:   { type: string, enum: [PENDING, PASS, MANUAL_REVIEW, REJECT] }

@@ -1,0 +1,77 @@
+openapi: 3.1.0
+info:
+  title: SmartWash Ledger & Wallet Service
+  version: 1.0.0
+  description: >
+    Append-only ledger_entries (TOPUP/DEDUCT/REFUND_REVERSAL/ADJUSTMENT).
+    wallets.balance is a read cache. All writes require Idempotency-Key and are
+    typically triggered by events (PaymentApproved, MachineFinished, RefundApproved).
+servers:
+  - url: /api/ledger/v1
+paths:
+  /wallets/{userId}:
+    get:
+      summary: Get wallet balance
+      operationId: getWallet
+      parameters: [{ name: userId, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:   { type: string, format: uuid }
+                  balance:  { type: integer, format: int64, description: kip }
+                  currency: { type: string, default: LAK }
+  /wallets/{userId}/entries:
+    get:
+      summary: List ledger entries (paginated)
+      operationId: listEntries
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, schema: { type: integer, default: 50 } }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/LedgerEntry' } } } } }
+  /ledger/post:
+    post:
+      summary: Post a ledger entry (internal — TOPUP/DEDUCT/REFUND_REVERSAL)
+      operationId: postEntry
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, type, amount, refType, refId]
+              properties:
+                userId:  { type: string, format: uuid }
+                type:    { type: string, enum: [TOPUP, DEDUCT, REFUND_REVERSAL, ADJUSTMENT] }
+                amount:  { type: integer, format: int64, description: signed kip (+topup / -deduct) }
+                refType: { type: string, enum: [order, topup, refund, recon] }
+                refId:   { type: string, format: uuid }
+      responses:
+        '201': { description: posted, content: { application/json: { schema: { $ref: '#/components/schemas/LedgerEntry' } } } }
+        '200': { description: idempotent replay (same key), content: { application/json: { schema: { $ref: '#/components/schemas/LedgerEntry' } } } }
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    LedgerEntry:
+      type: object
+      properties:
+        id:           { type: integer, format: int64 }
+        userId:       { type: string, format: uuid }
+        type:         { type: string, enum: [TOPUP, DEDUCT, REFUND_REVERSAL, ADJUSTMENT] }
+        amount:       { type: integer, format: int64 }
+        balanceAfter: { type: integer, format: int64 }
+        refType:      { type: string }
+        refId:        { type: string, format: uuid }
+        createdAt:    { type: string, format: date-time }

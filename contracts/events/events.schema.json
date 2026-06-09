@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartwash/contracts/events.schema.json",
+  "title": "SmartWash Event Contracts",
+  "description": "All domain events share Envelope; payloads in $defs. Published via Outbox to NATS JetStream.",
+  "$defs": {
+    "Envelope": {
+      "type": "object",
+      "required": ["id", "type", "source", "time", "correlationId", "data"],
+      "properties": {
+        "id":            { "type": "string", "format": "uuid", "description": "event id (idempotent consume)" },
+        "type":          { "type": "string", "description": "e.g. smartwash.order.paid.v1" },
+        "source":        { "type": "string", "description": "publishing service" },
+        "time":          { "type": "string", "format": "date-time" },
+        "correlationId": { "type": "string", "description": "propagated across all hops (OTel)" },
+        "data":          { "type": "object" }
+      }
+    },
+    "OrderCreated": {
+      "type": "object",
+      "required": ["orderId", "userId", "machineId", "type", "total"],
+      "properties": {
+        "orderId":   { "type": "string", "format": "uuid" },
+        "userId":    { "type": "string", "format": "uuid" },
+        "machineId": { "type": "string", "format": "uuid" },
+        "type":      { "type": "string", "enum": ["self_service", "pickup", "delivery"] },
+        "total":     { "type": "integer", "description": "kip" }
+      }
+    },
+    "SlipUploaded": {
+      "type": "object",
+      "required": ["qrRef", "slipId", "userId", "slipHash"],
+      "properties": {
+        "qrRef":    { "type": "string" },
+        "slipId":   { "type": "string", "format": "uuid" },
+        "userId":   { "type": "string", "format": "uuid" },
+        "slipHash": { "type": "string" }
+      }
+    },
+    "PaymentApproved": {
+      "type": "object",
+      "required": ["qrRef", "userId", "amount", "purpose"],
+      "properties": {
+        "qrRef":   { "type": "string" },
+        "userId":  { "type": "string", "format": "uuid" },
+        "amount":  { "type": "integer", "description": "kip" },
+        "purpose": { "type": "string", "enum": ["topup", "order"] },
+        "orderId": { "type": "string", "format": "uuid", "description": "when purpose=order" }
+      }
+    },
+    "PaymentRejected": {
+      "type": "object",
+      "required": ["qrRef", "userId", "reason"],
+      "properties": {
+        "qrRef":  { "type": "string" },
+        "userId": { "type": "string", "format": "uuid" },
+        "reason": { "type": "string", "enum": ["duplicate", "high_risk", "amount_mismatch", "wrong_account", "staff_reject"] }
+      }
+    },
+    "LedgerPosted": {
+      "type": "object",
+      "required": ["ledgerId", "userId", "type", "amount", "balanceAfter"],
+      "properties": {
+        "ledgerId":     { "type": "integer" },
+        "userId":       { "type": "string", "format": "uuid" },
+        "type":         { "type": "string", "enum": ["TOPUP", "DEDUCT", "REFUND_REVERSAL", "ADJUSTMENT"] },
+        "amount":       { "type": "integer" },
+        "balanceAfter": { "type": "integer" }
+      }
+    },
+    "MachineRunning": {
+      "type": "object",
+      "required": ["machineId", "orderId"],
+      "properties": {
+        "machineId": { "type": "string", "format": "uuid" },
+        "orderId":   { "type": "string", "format": "uuid" }
+      }
+    },
+    "MachineFinished": {
+      "type": "object",
+      "required": ["machineId", "orderId"],
+      "properties": {
+        "machineId": { "type": "string", "format": "uuid" },
+        "orderId":   { "type": "string", "format": "uuid" }
+      }
+    },
+    "MachineError": {
+      "type": "object",
+      "required": ["machineId", "errorCode"],
+      "properties": {
+        "machineId": { "type": "string", "format": "uuid" },
+        "orderId":   { "type": "string", "format": "uuid" },
+        "errorCode": { "type": "string" }
+      }
+    },
+    "MachineOffline": {
+      "type": "object",
+      "required": ["machineId"],
+      "properties": {
+        "machineId": { "type": "string", "format": "uuid" },
+        "lastSeen":  { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

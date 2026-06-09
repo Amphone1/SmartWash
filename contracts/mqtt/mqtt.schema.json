@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartwash/contracts/mqtt.schema.json",
+  "title": "WISE-4051 MQTT Contracts",
+  "description": "Topics: smartwash/{branch}/{machine}/{cmd|status|lwt}. QoS: cmd=2, status=1, lwt=1 retained.",
+  "$defs": {
+    "Command": {
+      "description": "downlink  smartwash/{branch}/{machine}/cmd",
+      "type": "object",
+      "required": ["cmd", "orderId", "ts"],
+      "properties": {
+        "cmd":      { "type": "string", "enum": ["START", "STOP", "PAUSE", "RESUME"] },
+        "orderId":  { "type": "string", "format": "uuid" },
+        "cycle":    { "type": "string", "enum": ["quick", "normal", "heavy"] },
+        "ts":       { "type": "string", "format": "date-time" }
+      }
+    },
+    "Status": {
+      "description": "uplink  smartwash/{branch}/{machine}/status",
+      "type": "object",
+      "required": ["machineId", "branchId", "status", "ts"],
+      "properties": {
+        "machineId": { "type": "string" },
+        "branchId":  { "type": "string" },
+        "status":    { "type": "string", "enum": ["IDLE", "STARTING", "RUNNING", "FINISHING", "PAUSED", "ERROR"] },
+        "progress":  { "type": "integer", "minimum": 0, "maximum": 100 },
+        "remaining": { "type": "integer", "description": "minutes" },
+        "errorCode": { "type": "string" },
+        "ts":        { "type": "string", "format": "date-time" }
+      }
+    },
+    "LastWill": {
+      "description": "retained  smartwash/{branch}/{machine}/lwt — broker publishes on disconnect",
+      "type": "object",
+      "required": ["machineId", "online"],
+      "properties": {
+        "machineId": { "type": "string" },
+        "online":    { "type": "boolean" },
+        "ts":        { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}
