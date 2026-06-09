@@ -38,6 +38,20 @@ export class NotFoundError extends DomainError {
   }
 }
 
+/** No / invalid credentials — caller is not authenticated. */
+export class UnauthorizedError extends DomainError {
+  constructor(message = 'unauthorized', details?: unknown) {
+    super('unauthorized', message, 401, details);
+  }
+}
+
+/** Authenticated but lacks the required permission/role. */
+export class ForbiddenError extends DomainError {
+  constructor(message = 'forbidden', details?: unknown) {
+    super('forbidden', message, 403, details);
+  }
+}
+
 /** Wallet/credit cannot cover the requested deduct. */
 export class InsufficientFundsError extends DomainError {
   constructor(message = 'insufficient funds', details?: unknown) {

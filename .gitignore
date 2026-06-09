@@ -34,3 +34,10 @@ npm-debug.log*
 
 # ── Build artifacts ──────────────────────────────────
 *.tsbuildinfo
+# Guard against accidental in-place tsc emit inside source trees
+libs/**/src/**/*.js
+libs/**/src/**/*.d.ts
+libs/**/src/**/*.map
+services/**/src/**/*.js
+services/**/src/**/*.d.ts
+services/**/src/**/*.map

@@ -9,7 +9,6 @@
       "options": {
         "command": "tsc -p libs/common/tsconfig.lib.json"
       },
-      "outputs": ["{workspaceRoot}/dist/libs/common"],
       "cache": true
     },
     "lint": {

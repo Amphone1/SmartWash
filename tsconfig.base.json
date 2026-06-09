@@ -4,21 +4,25 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "lib": ["ES2022"],
-    "declaration": true,
-    "sourceMap": true,
+    "declaration": false,
+    "sourceMap": false,
     "composite": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    "strictPropertyInitialization": false,
     "noImplicitOverride": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "baseUrl": ".",
     "rootDir": ".",
     "paths": {
-      "@smartwash/common": ["libs/common/src/index.ts"]
+      "@smartwash/common": ["libs/common/src/index.ts"],
+      "@smartwash/nestkit": ["libs/nestkit/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp", "dist"]

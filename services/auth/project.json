@@ -1,0 +1,34 @@
+{
+  "name": "auth",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/auth/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "tsc -p services/auth/tsconfig.app.json",
+          "node tools/build-service.mjs auth"
+        ],
+        "parallel": false
+      },
+      "outputs": ["{workspaceRoot}/dist/services/auth"],
+      "cache": true
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project services/auth/tsconfig.app.json -r tsconfig-paths/register services/auth/src/main.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint services/auth/src --max-warnings 0" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "jest --config services/auth/jest.config.ts" }
+    }
+  }
+}
