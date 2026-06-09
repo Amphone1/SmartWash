@@ -1,0 +1,34 @@
+{
+  "name": "queue",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/queue/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "tsc -p services/queue/tsconfig.app.json",
+          "node tools/build-service.mjs queue"
+        ],
+        "parallel": false
+      },
+      "outputs": ["{workspaceRoot}/dist/services/queue"],
+      "cache": true
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project services/queue/tsconfig.app.json -r tsconfig-paths/register services/queue/src/main.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint services/queue/src --max-warnings 0" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "jest --config services/queue/jest.config.ts" }
+    }
+  }
+}
