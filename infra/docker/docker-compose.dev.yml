@@ -10,7 +10,7 @@ services:
     ports: ["5432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ../db/init:/docker-entrypoint-initdb.d   # place smartwash_schema.sql here
+      - ../db/init:/docker-entrypoint-initdb.d   # 01_schema.sql auto-loads on first boot
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U smartwash"]
       interval: 10s
@@ -81,7 +81,9 @@ services:
     image: grafana/tempo:latest
     command: ["-config.file=/etc/tempo.yaml"]
     ports: ["4318:4318"]   # OTLP http
-    volumes: ["../observability/tempo.yaml:/etc/tempo.yaml"]
+    volumes:
+      - "../observability/tempo.yaml:/etc/tempo.yaml"
+      - tempodata:/var/tempo
 
   alertmanager:
     image: prom/alertmanager:latest
@@ -90,3 +92,4 @@ services:
 volumes:
   pgdata:
   miniodata:
+  tempodata:
