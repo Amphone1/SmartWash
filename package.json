@@ -50,6 +50,7 @@
     "class-validator": "^0.14.1",
     "ioredis": "^5.4.2",
     "jose": "^5.9.6",
+    "minio": "^8.0.2",
     "nats": "^2.29.2",
     "pg": "^8.13.1",
     "prom-client": "^15.1.3",
