@@ -14,3 +14,4 @@ export * from './auth/rbac.guard';
 export * from './events/nats';
 export * from './events/outbox-relay';
 export * from './storage/minio';
+export * from './mqtt/mqtt';
