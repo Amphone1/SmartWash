@@ -145,6 +145,33 @@ export class OrdersService {
   }
 
   /**
+   * Explicit "request delivery" for a pickup/delivery order — emits
+   * delivery_requested (with pickup/dropoff) so the delivery_order saga begins.
+   * Charging happens on successful delivery (saga), not here.
+   */
+  async requestDelivery(
+    id: string,
+    pickup: Record<string, unknown>,
+    dropoff: Record<string, unknown>,
+  ): Promise<{ orderId: string; status: string }> {
+    const order = await this.repo.findById(id);
+    if (!order) throw new NotFoundError('order not found');
+    if (order.type === 'self_service') {
+      throw new ConflictError('not a pickup/delivery order');
+    }
+    if (order.state !== 'RESERVED') {
+      throw new ConflictError(`delivery can only start from RESERVED, not ${order.state}`);
+    }
+    await this.repo.emitOutbox(id, 'smartwash.order.delivery_requested.v1', {
+      orderId: id,
+      userId: order.userId,
+      pickup,
+      dropoff,
+    });
+    return { orderId: id, status: 'delivery_requested' };
+  }
+
+  /**
    * Saga-driven FSM transition (e.g. RESERVED→PAID→RUNNING→COMPLETED, or refund
    * states). Guarded by the Order FSM; records order_events + outbox in one txn.
    */

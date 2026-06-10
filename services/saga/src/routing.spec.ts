@@ -30,6 +30,11 @@ describe('saga routing helpers', () => {
     expect(washRefundKey('order-1')).toBe('wash-refund:order-1');
   });
 
+  it('delivery deduct key is deterministic and distinct from wash', () => {
+    // delivery_order uses `delivery-deduct:{orderId}` (charge-on-delivery)
+    expect(washDeductKey('o1')).not.toBe('delivery-deduct:o1');
+  });
+
   describe('refundForError', () => {
     it('pro-rates the unused portion by progress', () => {
       expect(refundForError(20000, 0, 'pro_rata')).toBe(20000); // nothing used

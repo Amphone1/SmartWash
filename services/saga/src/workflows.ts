@@ -235,3 +235,68 @@ export async function washOrderWorkflow(input: WashInput): Promise<WashResult> {
   await w.orderTransition(input.orderId, 'COMPLETED', 'wash_complete');
   return { outcome: 'completed' };
 }
+
+// ============================================================================
+// delivery_order saga (pickup/delivery orders). Charge-on-successful-delivery:
+// no money moves until the delivery completes, so there is nothing to refund.
+// If the customer can't cover the charge at delivery time, the order is parked
+// PAYMENT_PENDING (outstanding debt) — the operator-risk tradeoff of charging
+// at the end. Delivery itself runs via the delivery/driver/machine FSMs.
+// ============================================================================
+export interface DeliveryEvent {
+  type: 'completed' | 'failed';
+}
+export const deliveryEventSignal = defineSignal<[DeliveryEvent]>('deliveryEvent');
+
+export interface DeliveryOrderInput {
+  orderId: string;
+  pickup: Record<string, unknown>;
+  dropoff: Record<string, unknown>;
+  deliveryTimeoutMs: number;
+}
+export interface DeliveryOrderResult {
+  outcome: 'completed' | 'cancelled' | 'payment_pending';
+  reason?: string;
+}
+
+export async function deliveryOrderWorkflow(
+  input: DeliveryOrderInput,
+): Promise<DeliveryOrderResult> {
+  const o = await w.getOrder(input.orderId);
+
+  // 1) Create + price the delivery (delivery service auto-assigns a driver).
+  const delivery = await w.createDelivery(input.orderId, input.pickup, input.dropoff);
+  const charge = o.total + delivery.fee;
+
+  // 2) Track completion. No money has moved yet; the order stays RESERVED while
+  //    the delivery/driver/machine FSMs run the pickup→wash→return.
+  const events: DeliveryEvent[] = [];
+  setHandler(deliveryEventSignal, (e) => {
+    events.push(e);
+  });
+
+  const completed = await condition(
+    () => events.some((e) => e.type === 'completed'),
+    input.deliveryTimeoutMs,
+  );
+  if (!completed) {
+    await w.orderTransition(input.orderId, 'CANCELLED', 'delivery_timeout');
+    return { outcome: 'cancelled', reason: 'delivery_timeout' };
+  }
+
+  // 3) Charge wash+fee now that the delivery succeeded (idempotent).
+  try {
+    await w.deductWallet({
+      userId: o.userId,
+      amount: charge,
+      orderId: input.orderId,
+      idempotencyKey: `delivery-deduct:${input.orderId}`,
+    });
+  } catch {
+    await w.orderTransition(input.orderId, 'PAYMENT_PENDING', 'charge_failed_post_delivery');
+    return { outcome: 'payment_pending', reason: 'charge_failed' };
+  }
+  await w.orderTransition(input.orderId, 'PAID', 'wallet_deducted');
+  await w.orderTransition(input.orderId, 'COMPLETED', 'delivery_complete');
+  return { outcome: 'completed' };
+}

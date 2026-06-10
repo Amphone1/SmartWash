@@ -19,7 +19,7 @@ import {
 import { ValidationError } from '@smartwash/common';
 import { InternalTokenGuard } from '@smartwash/nestkit';
 import { OrdersService, type OrderView } from '../application/orders.service';
-import { CreateOrderDto, TransitionOrderDto } from './dto';
+import { CreateOrderDto, RequestDeliveryDto, TransitionOrderDto } from './dto';
 
 @Controller('orders')
 @UseGuards(InternalTokenGuard)
@@ -56,6 +56,16 @@ export class OrdersController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<{ orderId: string; status: string }> {
     return this.orders.requestWash(id);
+  }
+
+  /** Explicit request-delivery (behind BFF) — emits delivery_requested. */
+  @Post(':id/request-delivery')
+  @HttpCode(202)
+  requestDelivery(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: RequestDeliveryDto,
+  ): Promise<{ orderId: string; status: string }> {
+    return this.orders.requestDelivery(id, { ...body.pickup }, { ...body.dropoff });
   }
 
   /** Saga-driven FSM transition (internal — wash_order saga). */

@@ -1,10 +1,14 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsIn,
+  IsLatitude,
+  IsLongitude,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
+  ValidateNested,
 } from 'class-validator';
 
 const ORDER_TYPES = ['self_service', 'pickup', 'delivery'] as const;
@@ -56,4 +60,27 @@ export class TransitionOrderDto {
   @IsString()
   @IsNotEmpty()
   event!: string;
+}
+
+class PlaceDto {
+  @IsOptional()
+  @IsString()
+  addr?: string;
+
+  @IsLatitude()
+  lat!: number;
+
+  @IsLongitude()
+  lng!: number;
+}
+
+/** Request a pickup/delivery (carries addresses for the delivery_order saga). */
+export class RequestDeliveryDto {
+  @ValidateNested()
+  @Type(() => PlaceDto)
+  pickup!: PlaceDto;
+
+  @ValidateNested()
+  @Type(() => PlaceDto)
+  dropoff!: PlaceDto;
 }

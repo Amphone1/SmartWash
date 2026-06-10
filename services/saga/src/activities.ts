@@ -236,3 +236,23 @@ export async function machineProgress(machineId: string): Promise<number> {
   )) as { progress: number };
   return s.progress ?? 0;
 }
+
+// ── delivery_order activities ────────────────────────────────────────
+export interface CreatedDelivery {
+  id: string;
+  fee: number;
+}
+
+export async function createDelivery(
+  orderId: string,
+  pickup: Record<string, unknown>,
+  dropoff: Record<string, unknown>,
+): Promise<CreatedDelivery> {
+  const d = (await callService(
+    config.deliveryUrl,
+    '/internal/deliveries',
+    'POST',
+    { orderId, pickup, dropoff },
+  )) as { id: string; fee: number };
+  return { id: d.id, fee: d.fee };
+}

@@ -13,7 +13,7 @@ import {
 import { ValidationError } from '@smartwash/common';
 import { BffAuthGuard, type AuthedRequest } from './auth.guard';
 import { PermissionsGuard, RequirePermission } from './permissions.guard';
-import { CreateOrderBffDto } from './dto';
+import { CreateOrderBffDto, RequestDeliveryBffDto } from './dto';
 import { OrderClient } from '../infra/external/clients';
 
 @Controller('bff/orders')
@@ -48,5 +48,16 @@ export class OrdersController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<unknown> {
     return this.orders.requestWash(req.principal!.userId, id);
+  }
+
+  @Post(':id/request-delivery')
+  @HttpCode(202)
+  @RequirePermission('delivery.request')
+  requestDelivery(
+    @Req() req: AuthedRequest,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: RequestDeliveryBffDto,
+  ): Promise<unknown> {
+    return this.orders.requestDelivery(req.principal!.userId, id, body);
   }
 }

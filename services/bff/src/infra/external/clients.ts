@@ -60,6 +60,15 @@ export class OrderClient {
       { method: 'POST', userId },
     );
   }
+  /** Explicit request-delivery (triggers the delivery_order saga). */
+  requestDelivery(userId: string, id: string, body: unknown): Promise<unknown> {
+    return callService(
+      this.cfg.orderUrl,
+      `/orders/${id}/request-delivery`,
+      this.cfg.internalToken,
+      { method: 'POST', body, userId },
+    );
+  }
 }
 
 @Injectable()

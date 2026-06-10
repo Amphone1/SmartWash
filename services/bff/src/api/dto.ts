@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsIn,
@@ -9,6 +10,7 @@ import {
   IsUUID,
   Matches,
   Min,
+  ValidateNested,
 } from 'class-validator';
 
 const ORDER_TYPES = ['self_service', 'pickup', 'delivery'] as const;
@@ -70,4 +72,26 @@ export class ReportLocationDto {
 
   @IsLongitude()
   lng!: number;
+}
+
+class PlaceBffDto {
+  @IsOptional()
+  @IsString()
+  addr?: string;
+
+  @IsLatitude()
+  lat!: number;
+
+  @IsLongitude()
+  lng!: number;
+}
+
+export class RequestDeliveryBffDto {
+  @ValidateNested()
+  @Type(() => PlaceBffDto)
+  pickup!: PlaceBffDto;
+
+  @ValidateNested()
+  @Type(() => PlaceBffDto)
+  dropoff!: PlaceBffDto;
 }

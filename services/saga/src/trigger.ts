@@ -13,6 +13,8 @@ import {
 import { Client, Connection } from '@temporalio/client';
 import { config } from './config';
 import {
+  deliveryEventSignal,
+  deliveryOrderWorkflow,
   machineEventSignal,
   staffDecisionSignal,
   topupWorkflow,
@@ -63,6 +65,48 @@ export async function startTrigger(): Promise<void> {
         await signalMachine(client, String(d.orderId), type, d.errorCode as string);
       }
     });
+  }
+
+  // delivery_order: explicit request → workflow; delivery completion → signal.
+  await subscribe(nc, 'smartwash.order.delivery_requested.v1', 'saga-delivery-req', async (e) => {
+    const d = (e.data ?? e) as Record<string, unknown>;
+    await startDeliveryOrder(client, d);
+  });
+  await subscribe(nc, 'smartwash.delivery.completed.v1', 'saga-delivery-done', async (e) => {
+    const d = (e.data ?? e) as Record<string, unknown>;
+    if (d.orderId) await signalDelivery(client, String(d.orderId));
+  });
+}
+
+async function startDeliveryOrder(
+  client: Client,
+  d: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await client.workflow.start(deliveryOrderWorkflow, {
+      taskQueue: config.taskQueue,
+      workflowId: `delivery:${String(d.orderId)}`,
+      args: [
+        {
+          orderId: String(d.orderId),
+          pickup: (d.pickup ?? {}) as Record<string, unknown>,
+          dropoff: (d.dropoff ?? {}) as Record<string, unknown>,
+          deliveryTimeoutMs: config.deliveryTimeoutMs,
+        },
+      ],
+    });
+  } catch (err) {
+    if (String(err).includes('AlreadyStarted')) return;
+    throw err;
+  }
+}
+
+async function signalDelivery(client: Client, orderId: string): Promise<void> {
+  try {
+    const handle = client.workflow.getHandle(`delivery:${orderId}`);
+    await handle.signal(deliveryEventSignal, { type: 'completed' });
+  } catch {
+    // no running delivery_order workflow for this order — ignore
   }
 }
 
