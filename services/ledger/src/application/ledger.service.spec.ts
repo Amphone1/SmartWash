@@ -1,5 +1,10 @@
 import { LedgerService } from './ledger.service';
-import type { LedgerRepository, PostResult } from '../domain/ports';
+import type {
+  LedgerRepository,
+  PostResult,
+  RefundInput,
+  RefundResult,
+} from '../domain/ports';
 import type { PostInput, LedgerEntryView } from '../domain/ledger';
 import { IdempotencyConflictError, InsufficientFundsError } from '@smartwash/common';
 
@@ -41,6 +46,30 @@ class FakeRepo implements LedgerRepository {
     this.entries.push(entry);
     this.byKey.set(input.idempotencyKey, entry);
     return { entry, replayed: false };
+  }
+
+  async postRefund(input: RefundInput): Promise<RefundResult> {
+    const existing = this.byKey.get(input.idempotencyKey);
+    if (existing) {
+      if (BigInt(existing.amount) !== input.amount) throw new IdempotencyConflictError();
+      return { entry: existing, refundId: 'r-replay', replayed: true };
+    }
+    const prev = this.entries.length
+      ? BigInt(this.entries[this.entries.length - 1].balanceAfter)
+      : 0n;
+    const entry: LedgerEntryView = {
+      id: this.entries.length + 1,
+      userId: input.userId,
+      type: 'REFUND_REVERSAL',
+      amount: Number(input.amount),
+      balanceAfter: Number(prev + input.amount),
+      refType: 'refund',
+      refId: input.orderId,
+      createdAt: new Date().toISOString(),
+    };
+    this.entries.push(entry);
+    this.byKey.set(input.idempotencyKey, entry);
+    return { entry, refundId: `r-${entry.id}`, replayed: false };
   }
 
   async listEntries(): Promise<LedgerEntryView[]> {
@@ -123,5 +152,57 @@ describe('LedgerService.post', () => {
       idempotencyKey: 'k2',
     });
     expect(d.entry.balanceAfter).toBe(15000);
+  });
+});
+
+describe('LedgerService.refund', () => {
+  const REF = '55555555-5555-4555-8555-555555555555';
+
+  it('credits back a REFUND_REVERSAL and returns a refund id', async () => {
+    const { service } = svc();
+    await service.post({
+      userId: USER,
+      type: 'TOPUP',
+      amount: 20000n,
+      refType: 'topup',
+      refId: REF,
+      idempotencyKey: 'k1',
+    });
+    const r = await service.refund({
+      userId: USER,
+      orderId: REF,
+      amount: 5000n,
+      type: 'PARTIAL',
+      reason: 'machine_error',
+      idempotencyKey: 'wash-refund:o1',
+    });
+    expect(r.entry.type).toBe('REFUND_REVERSAL');
+    expect(r.entry.balanceAfter).toBe(25000);
+    expect(r.refundId).toBeTruthy();
+  });
+
+  it('rejects a non-positive refund amount', async () => {
+    const { service } = svc();
+    await expect(
+      service.refund({
+        userId: USER,
+        orderId: REF,
+        amount: 0n,
+        type: 'FULL',
+        idempotencyKey: 'k',
+      }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+  });
+
+  it('is idempotent — same key never double-refunds', async () => {
+    const { service } = svc();
+    const a = await service.refund({
+      userId: USER, orderId: REF, amount: 5000n, type: 'FULL', idempotencyKey: 'wash-refund:o1',
+    });
+    const b = await service.refund({
+      userId: USER, orderId: REF, amount: 5000n, type: 'FULL', idempotencyKey: 'wash-refund:o1',
+    });
+    expect(b.replayed).toBe(true);
+    expect(b.entry.id).toBe(a.entry.id);
   });
 });

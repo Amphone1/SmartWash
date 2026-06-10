@@ -8,7 +8,12 @@ import { Injectable } from '@nestjs/common';
 import { IdempotencyConflictError, InsufficientFundsError } from '@smartwash/common';
 import { Database, insertOutbox } from '@smartwash/nestkit';
 import { nextBalance, type LedgerEntryView, type PostInput } from '../../domain/ledger';
-import type { LedgerRepository, PostResult } from '../../domain/ports';
+import type {
+  LedgerRepository,
+  PostResult,
+  RefundInput,
+  RefundResult,
+} from '../../domain/ports';
 
 interface Row {
   id: string;
@@ -103,6 +108,73 @@ export class PgLedgerRepository implements LedgerRepository {
       });
 
       return { entry: toEntry(entry), replayed: false };
+    });
+  }
+
+  async postRefund(input: RefundInput): Promise<RefundResult> {
+    return this.db.withTransaction(async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [input.userId]);
+
+      // Dedup — replay returns the same entry + refund row (never double-refund).
+      const dup = await client.query<Row>(
+        `SELECT * FROM ledger_entries WHERE idempotency_key = $1`,
+        [input.idempotencyKey],
+      );
+      if (dup.rows[0]) {
+        const e = dup.rows[0];
+        if (e.type !== 'REFUND_REVERSAL' || BigInt(e.amount) !== input.amount) {
+          throw new IdempotencyConflictError();
+        }
+        const rf = await client.query<{ id: string }>(
+          `SELECT id FROM refunds WHERE ledger_id = $1`,
+          [e.id],
+        );
+        return { entry: toEntry(e), refundId: rf.rows[0]?.id ?? '', replayed: true };
+      }
+
+      const prevRes = await client.query<{ balance_after: string }>(
+        `SELECT balance_after FROM ledger_entries
+          WHERE user_id = $1 ORDER BY id DESC LIMIT 1`,
+        [input.userId],
+      );
+      const prev = prevRes.rows[0] ? BigInt(prevRes.rows[0].balance_after) : 0n;
+      const balanceAfter = nextBalance(prev, input.amount); // refund credits back
+
+      const ins = await client.query<Row>(
+        `INSERT INTO ledger_entries
+           (user_id, type, amount, balance_after, ref_type, ref_id, idempotency_key)
+         VALUES ($1,'REFUND_REVERSAL',$2,$3,'refund',$4,$5) RETURNING *`,
+        [
+          input.userId,
+          input.amount.toString(),
+          balanceAfter.toString(),
+          input.orderId,
+          input.idempotencyKey,
+        ],
+      );
+      const entry = ins.rows[0];
+
+      // Record the refund (closes the audit gap) referencing the ledger entry.
+      const rf = await client.query<{ id: string }>(
+        `INSERT INTO refunds (order_id, user_id, type, amount, reason, state, ledger_id)
+         VALUES ($1,$2,$3,$4,$5,'REVERSED',$6) RETURNING id`,
+        [input.orderId, input.userId, input.type, input.amount.toString(), input.reason ?? null, entry.id],
+      );
+
+      await insertOutbox(client, {
+        aggregateType: 'ledger',
+        aggregateId: input.userId,
+        eventType: 'smartwash.ledger.posted.v1',
+        payload: {
+          ledgerId: Number(entry.id),
+          userId: input.userId,
+          type: 'REFUND_REVERSAL',
+          amount: Number(entry.amount),
+          balanceAfter: Number(entry.balance_after),
+        },
+      });
+
+      return { entry: toEntry(entry), refundId: rf.rows[0].id, replayed: false };
     });
   }
 

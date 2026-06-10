@@ -27,7 +27,7 @@ import {
   USER_ID_HEADER,
 } from '@smartwash/nestkit';
 import { LedgerService } from '../application/ledger.service';
-import { PostEntryDto } from './dto';
+import { PostEntryDto, RefundDto } from './dto';
 import type { LedgerEntryView } from '../domain/ledger';
 
 @Controller()
@@ -52,6 +52,26 @@ export class LedgerController {
     });
     res.status(replayed ? 200 : 201);
     return entry;
+  }
+
+  @Post('ledger/refund')
+  @UseGuards(InternalTokenGuard)
+  async refund(
+    @Headers('idempotency-key') key: string | undefined,
+    @Body() body: RefundDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LedgerEntryView & { refundId: string }> {
+    if (!key) throw new ValidationError('Idempotency-Key header is required');
+    const { entry, refundId, replayed } = await this.ledger.refund({
+      userId: body.userId,
+      orderId: body.orderId,
+      amount: toKip(body.amount),
+      type: body.type,
+      reason: body.reason,
+      idempotencyKey: key,
+    });
+    res.status(replayed ? 200 : 201);
+    return { ...entry, refundId };
   }
 
   @Get('wallets/:userId/entries')

@@ -1,4 +1,4 @@
-import { IsIn, IsInt, IsUUID } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 
 const TYPES = ['TOPUP', 'DEDUCT', 'REFUND_REVERSAL', 'ADJUSTMENT'] as const;
 const REF_TYPES = ['order', 'topup', 'refund', 'recon'] as const;
@@ -19,4 +19,23 @@ export class PostEntryDto {
 
   @IsUUID()
   refId!: string;
+}
+
+export class RefundDto {
+  @IsUUID()
+  userId!: string;
+
+  @IsUUID()
+  orderId!: string;
+
+  @IsInt()
+  @Min(1)
+  amount!: number; // positive kip credited back
+
+  @IsIn(['FULL', 'PARTIAL'])
+  type!: 'FULL' | 'PARTIAL';
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
 }

@@ -161,17 +161,20 @@ export async function refundWallet(x: {
   amount: number;
   orderId: string;
   idempotencyKey: string;
+  type: 'FULL' | 'PARTIAL';
+  reason?: string;
 }): Promise<void> {
+  // Centralized refund: REFUND_REVERSAL ledger entry + refunds row, atomic.
   await callService(
     config.ledgerUrl,
-    '/ledger/post',
+    '/ledger/refund',
     'POST',
     {
       userId: x.userId,
-      type: 'REFUND_REVERSAL',
+      orderId: x.orderId,
       amount: x.amount, // positive credit back
-      refType: 'refund',
-      refId: x.orderId,
+      type: x.type,
+      reason: x.reason,
     },
     { idempotencyKey: x.idempotencyKey },
   );

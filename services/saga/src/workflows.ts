@@ -191,6 +191,8 @@ export async function washOrderWorkflow(input: WashInput): Promise<WashResult> {
       amount: o.total,
       orderId: input.orderId,
       idempotencyKey: washRefundKey(input.orderId),
+      type: 'FULL',
+      reason: 'wash_failed',
     }),
   );
 
@@ -223,6 +225,8 @@ export async function washOrderWorkflow(input: WashInput): Promise<WashResult> {
         amount,
         orderId: input.orderId,
         idempotencyKey: washRefundKey(input.orderId),
+        type: amount >= o.total ? 'FULL' : 'PARTIAL',
+        reason: 'machine_error',
       });
     }
     await w.machineStop(o.machineId, input.orderId);
