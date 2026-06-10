@@ -15,6 +15,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ValidationError } from '@smartwash/common';
+import { RateLimit, RateLimitGuard } from '@smartwash/nestkit';
 import { BffAuthGuard, type AuthedRequest } from './auth.guard';
 import { PermissionsGuard, RequirePermission } from './permissions.guard';
 import { CreatePaymentBffDto, UploadSlipBffDto } from './dto';
@@ -26,7 +27,7 @@ function requireKey(key: string | undefined): string {
 }
 
 @Controller('bff')
-@UseGuards(BffAuthGuard, PermissionsGuard)
+@UseGuards(BffAuthGuard, PermissionsGuard, RateLimitGuard)
 export class TopupController {
   constructor(
     private readonly payments: PaymentClient,
@@ -36,6 +37,7 @@ export class TopupController {
   @Post('payments')
   @HttpCode(201)
   @RequirePermission('payment.create')
+  @RateLimit(5, 60, 'user')
   createPayment(
     @Req() req: AuthedRequest,
     @Headers('idempotency-key') key: string | undefined,
@@ -47,6 +49,7 @@ export class TopupController {
   @Post('payments/:qrRef/slip')
   @HttpCode(202)
   @RequirePermission('payment.create')
+  @RateLimit(10, 60, 'user')
   uploadSlip(
     @Req() req: AuthedRequest,
     @Param('qrRef') qrRef: string,

@@ -1,24 +1,32 @@
 # Traefik dynamic config (file provider). Only the public edges are routed here:
-# the BFF (customer app aggregator) and Auth (token endpoints). Order, Queue and
-# RBAC are intentionally NOT exposed — they're internal-only on the compose
-# network, reachable solely by the BFF with the shared internal token.
+# the BFF (customer app aggregator) and Auth (token endpoints). Order, Queue,
+# RBAC and all money/finance services are intentionally NOT exposed — internal
+# only on the compose network, reachable solely by the BFF with the internal token.
 http:
   middlewares:
     strip-api:
       stripPrefix:
         prefixes: ["/api"]
+    # Coarse per-client-IP rate limit (defense in depth; the BFF also enforces
+    # fine per-user limits via the nestkit RateLimitGuard).
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
 
   routers:
     bff:
       rule: "PathPrefix(`/api/bff`)"
-      entryPoints: ["web"]
-      middlewares: ["strip-api"]
+      entryPoints: ["web", "websecure"]
+      middlewares: ["rate-limit", "strip-api"]
       service: bff
+      tls: {} # dev: Traefik self-signed; prod: set a certResolver (ACME)
     auth:
       rule: "PathPrefix(`/api/auth`)"
-      entryPoints: ["web"]
-      middlewares: ["strip-api"]
+      entryPoints: ["web", "websecure"]
+      middlewares: ["rate-limit", "strip-api"]
       service: auth
+      tls: {}
 
   services:
     bff:

@@ -11,6 +11,7 @@ export * from './idempotency/idempotency.service';
 export * from './errors/domain-exception.filter';
 export * from './auth/internal-token.guard';
 export * from './auth/rbac.guard';
+export * from './security/rate-limit.guard';
 export * from './events/nats';
 export * from './events/outbox-relay';
 export * from './storage/minio';

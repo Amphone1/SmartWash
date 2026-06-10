@@ -11,19 +11,21 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ValidationError } from '@smartwash/common';
+import { RateLimit, RateLimitGuard } from '@smartwash/nestkit';
 import { BffAuthGuard, type AuthedRequest } from './auth.guard';
 import { PermissionsGuard, RequirePermission } from './permissions.guard';
 import { CreateOrderBffDto, RequestDeliveryBffDto } from './dto';
 import { OrderClient } from '../infra/external/clients';
 
 @Controller('bff/orders')
-@UseGuards(BffAuthGuard, PermissionsGuard)
+@UseGuards(BffAuthGuard, PermissionsGuard, RateLimitGuard)
 export class OrdersController {
   constructor(private readonly orders: OrderClient) {}
 
   @Post()
   @HttpCode(201)
   @RequirePermission('order.create')
+  @RateLimit(30, 60, 'user')
   create(
     @Req() req: AuthedRequest,
     @Headers('idempotency-key') key: string | undefined,
@@ -43,6 +45,7 @@ export class OrdersController {
   @Post(':id/start')
   @HttpCode(202)
   @RequirePermission('order.create')
+  @RateLimit(10, 60, 'user')
   start(
     @Req() req: AuthedRequest,
     @Param('id', new ParseUUIDPipe()) id: string,

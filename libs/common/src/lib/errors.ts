@@ -59,6 +59,13 @@ export class InsufficientFundsError extends DomainError {
   }
 }
 
+/** Caller exceeded a rate limit. */
+export class TooManyRequestsError extends DomainError {
+  constructor(message = 'too many requests', details?: unknown) {
+    super('rate_limited', message, 429, details);
+  }
+}
+
 /**
  * Same Idempotency-Key replayed with a *different* request body — the caller
  * is reusing a key they should not. (A replay with the same body is NOT an

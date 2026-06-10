@@ -15,8 +15,18 @@ connect without provisioning. The Machine service subscribes to
 `smartwash/+/+/status` and `smartwash/+/+/lwt` and publishes commands to
 `…/cmd`.
 
-## Phase 6 (hardening — TODO)
-- Per-role MQTT **authentication** (backend vs device credentials).
-- **ACLs**: devices may only publish their own `status`/`lwt` and subscribe their
-  own `cmd`; the backend may publish `cmd` and subscribe `status`/`lwt`.
-- **TLS** for broker connections.
+## Phase 6 (hardening)
+- **ACLs**: `acl.conf` (this folder) — backend may `pub …/cmd` + `sub
+  …/status|lwt`; devices may `pub …/status|lwt` + `sub …/cmd`; default deny.
+  Enforce in prod by mounting it and enabling the file authz source:
+  ```
+  EMQX_AUTHORIZATION__NO_MATCH: deny
+  EMQX_AUTHORIZATION__SOURCES: '[{type:"file",enable:true,path:"/opt/emqx/etc/acl.conf"}]'
+  volumes: ["../mqtt/acl.conf:/opt/emqx/etc/acl.conf:ro"]
+  ```
+- **Authentication**: per-role (backend) and **per-device** credentials
+  (clientid-scoped via `${clientid}` in the ACL). Dev runs anonymous so the
+  Machine service + simulator connect without provisioning; do NOT enable strict
+  ACL without authn or you will lock them out.
+- **TLS**: EMQX `ssl` listener on `8883`; set `MQTT_URL=mqtts://emqx:8883` and
+  mount broker certs. Dev stays on `1883`.

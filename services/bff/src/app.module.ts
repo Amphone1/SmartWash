@@ -4,6 +4,8 @@ import {
   DatabaseModule,
   HealthModule,
   MetricsModule,
+  RateLimitGuard,
+  RedisModule,
 } from '@smartwash/nestkit';
 import { ServicesConfig } from './config/services.config';
 import {
@@ -31,7 +33,12 @@ import { DeliveryTrackController } from './api/delivery-track.controller';
 import { ReportingController } from './api/reporting.controller';
 
 @Module({
-  imports: [DatabaseModule, MetricsModule, HealthModule.forRoot([Database])],
+  imports: [
+    DatabaseModule,
+    RedisModule,
+    MetricsModule,
+    HealthModule.forRoot([Database]),
+  ],
   controllers: [
     CatalogController,
     OrdersController,
@@ -57,6 +64,7 @@ import { ReportingController } from './api/reporting.controller';
     ReportingRepository,
     BffAuthGuard,
     PermissionsGuard,
+    RateLimitGuard,
   ],
 })
 export class AppModule {}
