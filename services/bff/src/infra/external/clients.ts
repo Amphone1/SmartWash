@@ -121,3 +121,63 @@ export class WalletClient {
     );
   }
 }
+
+@Injectable()
+export class DeliveryClient {
+  constructor(private readonly cfg: ServicesConfig) {}
+  get(id: string): Promise<unknown> {
+    return callService(this.cfg.deliveryUrl, `/deliveries/${id}`, this.cfg.internalToken);
+  }
+  listForDriver(userId: string, driverId: string): Promise<unknown> {
+    return callService(
+      this.cfg.deliveryUrl,
+      `/drivers/${driverId}/deliveries`,
+      this.cfg.internalToken,
+      { userId },
+    );
+  }
+  accept(userId: string, id: string, driverId: string): Promise<unknown> {
+    return this.action(userId, id, 'accept', { driverId });
+  }
+  reject(userId: string, id: string, driverId: string): Promise<unknown> {
+    return this.action(userId, id, 'reject', { driverId });
+  }
+  advance(userId: string, id: string, driverId: string, to: string): Promise<unknown> {
+    return this.action(userId, id, 'advance', { driverId, to });
+  }
+  complete(userId: string, id: string): Promise<unknown> {
+    return callService(
+      this.cfg.deliveryUrl,
+      `/deliveries/${id}/complete`,
+      this.cfg.internalToken,
+      { method: 'POST', userId },
+    );
+  }
+  private action(userId: string, id: string, verb: string, body: unknown): Promise<unknown> {
+    return callService(
+      this.cfg.deliveryUrl,
+      `/deliveries/${id}/${verb}`,
+      this.cfg.internalToken,
+      { method: 'POST', body, userId },
+    );
+  }
+}
+
+@Injectable()
+export class GpsClient {
+  constructor(private readonly cfg: ServicesConfig) {}
+  report(userId: string, driverId: string, lat: number, lng: number): Promise<unknown> {
+    return callService(this.cfg.gpsUrl, '/gps/locations', this.cfg.internalToken, {
+      method: 'POST',
+      body: { driverId, lat, lng },
+      userId,
+    });
+  }
+  last(driverId: string): Promise<unknown> {
+    return callService(
+      this.cfg.gpsUrl,
+      `/gps/drivers/${driverId}/last`,
+      this.cfg.internalToken,
+    );
+  }
+}

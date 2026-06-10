@@ -8,6 +8,8 @@ import {
 import { ServicesConfig } from './config/services.config';
 import {
   AuthClient,
+  DeliveryClient,
+  GpsClient,
   OrderClient,
   PaymentClient,
   QueueClient,
@@ -21,6 +23,8 @@ import { CatalogController } from './api/catalog.controller';
 import { OrdersController } from './api/orders.controller';
 import { QueueController } from './api/queue.controller';
 import { TopupController } from './api/topup.controller';
+import { DriverController } from './api/driver.controller';
+import { DeliveryTrackController } from './api/delivery-track.controller';
 
 @Module({
   imports: [DatabaseModule, MetricsModule, HealthModule.forRoot([Database])],
@@ -29,6 +33,8 @@ import { TopupController } from './api/topup.controller';
     OrdersController,
     QueueController,
     TopupController,
+    DriverController,
+    DeliveryTrackController,
   ],
   providers: [
     ServicesConfig,
@@ -38,6 +44,8 @@ import { TopupController } from './api/topup.controller';
     QueueClient,
     PaymentClient,
     WalletClient,
+    DeliveryClient,
+    GpsClient,
     CatalogRepository,
     BffAuthGuard,
     PermissionsGuard,

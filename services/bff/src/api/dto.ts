@@ -2,6 +2,8 @@ import {
   IsArray,
   IsIn,
   IsInt,
+  IsLatitude,
+  IsLongitude,
   IsOptional,
   IsString,
   IsUUID,
@@ -53,4 +55,19 @@ export class UploadSlipBffDto {
 
   @Matches(/^[a-f0-9]{64}$/i, { message: 'slipHash must be a SHA-256 hex digest' })
   slipHash!: string;
+}
+
+const ADVANCE_STATES = ['EN_ROUTE_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED'] as const;
+
+export class AdvanceBffDto {
+  @IsIn(ADVANCE_STATES)
+  to!: (typeof ADVANCE_STATES)[number];
+}
+
+export class ReportLocationDto {
+  @IsLatitude()
+  lat!: number;
+
+  @IsLongitude()
+  lng!: number;
 }

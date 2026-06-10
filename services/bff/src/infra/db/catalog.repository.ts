@@ -42,6 +42,14 @@ export class CatalogRepository {
     }));
   }
 
+  /** Resolve the driver row id for an authenticated driver user. */
+  async findDriverIdByUser(userId: string): Promise<string | null> {
+    const { rows } = await this.db
+      .getPool()
+      .query<{ id: string }>(`SELECT id FROM drivers WHERE user_id = $1`, [userId]);
+    return rows[0]?.id ?? null;
+  }
+
   async listMachines(branchId: string): Promise<MachineView[]> {
     const { rows } = await this.db.getPool().query(
       `SELECT m.id, m.code, m.type, m.capacity_kg, m.price,

@@ -11,6 +11,8 @@ export class ServicesConfig {
   readonly walletUrl = optionalEnv('WALLET_URL', 'http://wallet:3006');
   readonly ledgerUrl = optionalEnv('LEDGER_URL', 'http://ledger:3007');
   readonly paymentUrl = optionalEnv('PAYMENT_URL', 'http://payment:3009');
+  readonly deliveryUrl = optionalEnv('DELIVERY_URL', 'http://delivery:3012');
+  readonly gpsUrl = optionalEnv('GPS_URL', 'http://gps:3013');
 
   /** Fail fast if the internal token is missing — downstream calls need it. */
   get internalToken(): string {

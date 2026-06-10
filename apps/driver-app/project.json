@@ -1,0 +1,16 @@
+{
+  "name": "driver-app",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/driver-app",
+  "projectType": "application",
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "cwd": "apps/driver-app", "command": "tsc --noEmit" }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": { "cwd": "apps/driver-app", "command": "expo start" }
+    }
+  }
+}

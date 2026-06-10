@@ -161,6 +161,11 @@ services:
       RBAC_URL: http://rbac:3002
       ORDER_URL: http://order:3003
       QUEUE_URL: http://queue:3004
+      WALLET_URL: http://wallet:3006
+      LEDGER_URL: http://ledger:3007
+      PAYMENT_URL: http://payment:3009
+      DELIVERY_URL: http://delivery:3012
+      GPS_URL: http://gps:3013
     depends_on:
       <<: *service-depends
       auth:
@@ -263,6 +268,28 @@ services:
       SIM_STEP_MS: "2000"
     depends_on:
       emqx: { condition: service_started }
+
+  # ── Phase 4 services (Delivery) ────────────────────
+  delivery:
+    build: { context: ../.., dockerfile: services/delivery/Dockerfile }
+    environment:
+      <<: *service-env
+      SERVICE_NAME: delivery
+      OUTBOX_AGGREGATE_TYPES: delivery
+      GOOGLE_MAPS_API_KEY: "" # empty → haversine fallback
+      DELIVERY_BASE_FEE: "10000"
+      DELIVERY_PER_KM: "3000"
+      DELIVERY_MIN_FEE: "10000"
+    depends_on:
+      <<: *service-depends
+      nats: { condition: service_started }
+
+  gps:
+    build: { context: ../.., dockerfile: services/gps/Dockerfile }
+    environment:
+      <<: *service-env
+      SERVICE_NAME: gps
+    depends_on: *service-depends
 
 volumes:
   pgdata:
