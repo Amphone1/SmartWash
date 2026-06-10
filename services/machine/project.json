@@ -1,0 +1,34 @@
+{
+  "name": "machine",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/machine/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "tsc -p services/machine/tsconfig.app.json",
+          "node tools/build-service.mjs machine"
+        ],
+        "parallel": false
+      },
+      "outputs": ["{workspaceRoot}/dist/services/machine"],
+      "cache": true
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project services/machine/tsconfig.app.json -r tsconfig-paths/register services/machine/src/main.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint services/machine/src --max-warnings 0" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "jest --config services/machine/jest.config.ts" }
+    }
+  }
+}
