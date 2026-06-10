@@ -1,0 +1,34 @@
+{
+  "name": "settlement",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/settlement/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "tsc -p services/settlement/tsconfig.app.json",
+          "node tools/build-service.mjs settlement"
+        ],
+        "parallel": false
+      },
+      "outputs": ["{workspaceRoot}/dist/services/settlement"],
+      "cache": true
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project services/settlement/tsconfig.app.json -r tsconfig-paths/register services/settlement/src/main.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint services/settlement/src --max-warnings 0" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "jest --config services/settlement/jest.config.ts" }
+    }
+  }
+}
