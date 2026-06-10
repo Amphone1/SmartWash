@@ -139,8 +139,12 @@ services:
     build: { context: ../.., dockerfile: services/order/Dockerfile }
     environment:
       <<: *service-env
+      SERVICE_NAME: order
+      OUTBOX_AGGREGATE_TYPES: order
       VAT_BPS: "0"
-    depends_on: *service-depends
+    depends_on:
+      <<: *service-depends
+      nats: { condition: service_started }
 
   queue:
     build: { context: ../.., dockerfile: services/queue/Dockerfile }
@@ -232,6 +236,33 @@ services:
       <<: *service-depends
       nats: { condition: service_started }
       temporal: { condition: service_started }
+
+  # ── Phase 3 services (Machine + IoT) ───────────────
+  machine:
+    build: { context: ../.., dockerfile: services/machine/Dockerfile }
+    environment:
+      <<: *service-env
+      SERVICE_NAME: machine
+      OUTBOX_AGGREGATE_TYPES: machine
+      MQTT_URL: mqtt://emqx:1883
+      MQTT_USERNAME: backend
+      HEARTBEAT_TIMEOUT_SEC: "30"
+    depends_on:
+      <<: *service-depends
+      nats: { condition: service_started }
+      emqx: { condition: service_started }
+
+  device-sim:
+    build: { context: ../.., dockerfile: services/device-sim/Dockerfile }
+    environment:
+      MQTT_URL: mqtt://emqx:1883
+      MQTT_USERNAME: device
+      # Configure machines to emulate (must match DB rows), e.g.:
+      # SIM_DEVICES: '[{"machineId":"<uuid>","branchId":"<uuid>","code":"W001"}]'
+      SIM_DEVICES: "[]"
+      SIM_STEP_MS: "2000"
+    depends_on:
+      emqx: { condition: service_started }
 
 volumes:
   pgdata:
