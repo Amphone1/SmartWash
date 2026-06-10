@@ -13,6 +13,11 @@ export class ServicesConfig {
   readonly paymentUrl = optionalEnv('PAYMENT_URL', 'http://payment:3009');
   readonly deliveryUrl = optionalEnv('DELIVERY_URL', 'http://delivery:3012');
   readonly gpsUrl = optionalEnv('GPS_URL', 'http://gps:3013');
+  readonly settlementUrl = optionalEnv('SETTLEMENT_URL', 'http://settlement:3014');
+  readonly reconciliationUrl = optionalEnv(
+    'RECONCILIATION_URL',
+    'http://reconciliation:3015',
+  );
 
   /** Fail fast if the internal token is missing — downstream calls need it. */
   get internalToken(): string {

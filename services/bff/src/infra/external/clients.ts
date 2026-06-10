@@ -190,3 +190,37 @@ export class GpsClient {
     );
   }
 }
+
+@Injectable()
+export class SettlementClient {
+  constructor(private readonly cfg: ServicesConfig) {}
+  run(userId: string, branchId: string, date: string): Promise<unknown> {
+    return callService(
+      this.cfg.settlementUrl,
+      '/internal/settlements/run',
+      this.cfg.internalToken,
+      { method: 'POST', body: { branchId, date }, userId },
+    );
+  }
+  list(userId: string, branchId: string): Promise<unknown> {
+    return callService(
+      this.cfg.settlementUrl,
+      `/settlements?branchId=${encodeURIComponent(branchId)}`,
+      this.cfg.internalToken,
+      { userId },
+    );
+  }
+}
+
+@Injectable()
+export class ReconciliationClient {
+  constructor(private readonly cfg: ServicesConfig) {}
+  run(userId: string, body: unknown): Promise<unknown> {
+    return callService(
+      this.cfg.reconciliationUrl,
+      '/internal/reconciliation/run',
+      this.cfg.internalToken,
+      { method: 'POST', body, userId },
+    );
+  }
+}

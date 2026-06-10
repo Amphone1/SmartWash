@@ -14,6 +14,8 @@ import {
   PaymentClient,
   QueueClient,
   RbacClient,
+  ReconciliationClient,
+  SettlementClient,
   WalletClient,
 } from './infra/external/clients';
 import { CatalogRepository } from './infra/db/catalog.repository';
@@ -49,6 +51,8 @@ import { ReportingController } from './api/reporting.controller';
     WalletClient,
     DeliveryClient,
     GpsClient,
+    SettlementClient,
+    ReconciliationClient,
     CatalogRepository,
     ReportingRepository,
     BffAuthGuard,

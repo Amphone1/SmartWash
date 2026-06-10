@@ -95,3 +95,38 @@ export class RequestDeliveryBffDto {
   @Type(() => PlaceBffDto)
   dropoff!: PlaceBffDto;
 }
+
+export class RunSettlementBffDto {
+  @IsUUID()
+  branchId!: string;
+
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'date must be YYYY-MM-DD' })
+  date!: string;
+}
+
+class StatementLineBffDto {
+  @IsInt()
+  @Min(0)
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  ref?: string;
+
+  @IsOptional()
+  @IsString()
+  sender?: string;
+}
+
+export class RunReconBffDto {
+  @IsUUID()
+  branchId!: string;
+
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'date must be YYYY-MM-DD' })
+  date!: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StatementLineBffDto)
+  statementLines!: StatementLineBffDto[];
+}
