@@ -33,6 +33,12 @@ export class OutboxRelay implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly serviceName = optionalEnv('SERVICE_NAME', 'unknown');
   private readonly batchSize = intEnv('OUTBOX_BATCH_SIZE', 100);
   private readonly intervalMs = intEnv('OUTBOX_POLL_MS', 1000);
+  // Scope this relay to specific aggregate types (comma list) so multiple
+  // producers don't all publish the whole table. Empty = all.
+  private readonly aggregateTypes = optionalEnv('OUTBOX_AGGREGATE_TYPES', '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   private timer?: NodeJS.Timeout;
   private running = false;
 
@@ -61,11 +67,14 @@ export class OutboxRelay implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   async relayBatch(): Promise<number> {
+    const filtered = this.aggregateTypes.length > 0;
     const { rows } = await this.db.getPool().query<OutboxRow>(
       `SELECT id, aggregate_type, aggregate_id, event_type, payload
-         FROM outbox WHERE state = 'PENDING'
-         ORDER BY created_at ASC LIMIT $1`,
-      [this.batchSize],
+         FROM outbox
+        WHERE state = 'PENDING'
+          ${filtered ? 'AND aggregate_type = ANY($2)' : ''}
+        ORDER BY created_at ASC LIMIT $1`,
+      filtered ? [this.batchSize, this.aggregateTypes] : [this.batchSize],
     );
 
     let published = 0;

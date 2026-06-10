@@ -1,0 +1,28 @@
+{
+  "name": "saga",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/saga/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "tsc -p services/saga/tsconfig.app.json" },
+      "outputs": ["{workspaceRoot}/dist/services/saga"],
+      "cache": true
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project services/saga/tsconfig.app.json services/saga/src/main.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint services/saga/src --max-warnings 0" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "jest --config services/saga/jest.config.ts" }
+    }
+  }
+}

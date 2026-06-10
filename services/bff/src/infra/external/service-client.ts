@@ -14,6 +14,8 @@ export interface CallOptions {
   method?: 'GET' | 'POST';
   body?: unknown;
   idempotencyKey?: string;
+  /** Forwarded as X-User-Id so downstream money services can re-check RBAC. */
+  userId?: string;
 }
 
 export async function callService(
@@ -29,6 +31,7 @@ export async function callService(
   if (cid) headers[CORRELATION_HEADER] = cid;
   if (opts.body !== undefined) headers['content-type'] = 'application/json';
   if (opts.idempotencyKey) headers['idempotency-key'] = opts.idempotencyKey;
+  if (opts.userId) headers['x-user-id'] = opts.userId;
 
   const res = await fetch(`${baseUrl}${path}`, {
     method: opts.method ?? 'GET',

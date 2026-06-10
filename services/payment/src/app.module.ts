@@ -5,6 +5,9 @@ import {
   HealthModule,
   IdempotencyService,
   MetricsModule,
+  NatsEventBus,
+  NatsModule,
+  OutboxRelay,
   RbacModule,
 } from '@smartwash/nestkit';
 import { PaymentController } from './api/payment.controller';
@@ -15,14 +18,16 @@ import { PgPaymentRepository } from './infra/db/pg-payment.repository';
 @Module({
   imports: [
     DatabaseModule,
+    NatsModule,
     RbacModule,
     MetricsModule,
-    HealthModule.forRoot([Database]),
+    HealthModule.forRoot([Database, NatsEventBus]),
   ],
   controllers: [PaymentController],
   providers: [
     PaymentService,
     IdempotencyService,
+    OutboxRelay, // publishes payment.* events (OUTBOX_AGGREGATE_TYPES=payment)
     { provide: PAYMENT_REPOSITORY, useClass: PgPaymentRepository },
   ],
 })

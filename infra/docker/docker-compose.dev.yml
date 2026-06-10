@@ -168,6 +168,71 @@ services:
       queue:
         condition: service_started
 
+  # ── Phase 2 services (financial spine) ─────────────
+  ledger:
+    build: { context: ../.., dockerfile: services/ledger/Dockerfile }
+    environment:
+      <<: *service-env
+      SERVICE_NAME: ledger
+      OUTBOX_AGGREGATE_TYPES: ledger
+    depends_on:
+      <<: *service-depends
+      nats: { condition: service_started }
+
+  wallet:
+    build: { context: ../.., dockerfile: services/wallet/Dockerfile }
+    environment:
+      <<: *service-env
+      SERVICE_NAME: wallet
+    depends_on:
+      <<: *service-depends
+      nats: { condition: service_started }
+
+  payment:
+    build: { context: ../.., dockerfile: services/payment/Dockerfile }
+    environment:
+      <<: *service-env
+      SERVICE_NAME: payment
+      OUTBOX_AGGREGATE_TYPES: payment
+      PAYMENT_EXPIRY_MIN: "30"
+    depends_on:
+      <<: *service-depends
+      nats: { condition: service_started }
+
+  fraud:
+    build: { context: ../.., dockerfile: services/fraud/Dockerfile }
+    environment:
+      <<: *service-env
+      SERVICE_NAME: fraud
+    depends_on: *service-depends
+
+  ocr:
+    build: { context: ../.., dockerfile: services/ocr/Dockerfile }
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+
+  risk:
+    build: { context: ../.., dockerfile: services/risk/Dockerfile }
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+
+  saga:
+    build: { context: ../.., dockerfile: services/saga/Dockerfile }
+    environment:
+      <<: *service-env
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      OWNER_ACCOUNT: OWNER-ACC-0001
+      OCR_URL: http://ocr:8001
+      RISK_URL: http://risk:8002
+      FRAUD_URL: http://fraud:3008
+      PAYMENT_URL: http://payment:3009
+      LEDGER_URL: http://ledger:3007
+    depends_on:
+      <<: *service-depends
+      nats: { condition: service_started }
+      temporal: { condition: service_started }
+
 volumes:
   pgdata:
   miniodata:

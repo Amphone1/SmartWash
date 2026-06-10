@@ -65,3 +65,50 @@ export class QueueClient {
     );
   }
 }
+
+@Injectable()
+export class PaymentClient {
+  constructor(private readonly cfg: ServicesConfig) {}
+  create(idempotencyKey: string, userId: string, body: unknown): Promise<unknown> {
+    return callService(this.cfg.paymentUrl, '/payments', this.cfg.internalToken, {
+      method: 'POST',
+      body,
+      idempotencyKey,
+      userId,
+    });
+  }
+  uploadSlip(
+    idempotencyKey: string,
+    userId: string,
+    qrRef: string,
+    body: unknown,
+  ): Promise<unknown> {
+    return callService(
+      this.cfg.paymentUrl,
+      `/payments/${qrRef}/slip`,
+      this.cfg.internalToken,
+      { method: 'POST', body, idempotencyKey, userId },
+    );
+  }
+  getStatus(userId: string, qrRef: string): Promise<unknown> {
+    return callService(
+      this.cfg.paymentUrl,
+      `/payments/${qrRef}`,
+      this.cfg.internalToken,
+      { userId },
+    );
+  }
+}
+
+@Injectable()
+export class WalletClient {
+  constructor(private readonly cfg: ServicesConfig) {}
+  get(userId: string): Promise<unknown> {
+    return callService(
+      this.cfg.walletUrl,
+      `/wallets/${userId}`,
+      this.cfg.internalToken,
+      { userId },
+    );
+  }
+}

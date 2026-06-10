@@ -124,7 +124,15 @@ export class PgPaymentRepository implements PaymentRepository {
         aggregateType: 'payment',
         aggregateId: req.id,
         eventType: 'smartwash.payment.slip_uploaded.v1',
-        payload: { qrRef, slipId, userId, slipHash },
+        payload: {
+          qrRef,
+          slipId,
+          userId,
+          slipHash,
+          // Enrichment for the topup saga (event schema allows extra fields):
+          imageObjectKey: objectKey,
+          amountExpected: Number(req.amount_expected),
+        },
       });
       return { slipId };
     });

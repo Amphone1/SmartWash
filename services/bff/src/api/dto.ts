@@ -1,4 +1,13 @@
-import { IsArray, IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  Min,
+} from 'class-validator';
 
 const ORDER_TYPES = ['self_service', 'pickup', 'delivery'] as const;
 const CYCLES = ['quick', 'normal', 'heavy'] as const;
@@ -22,4 +31,26 @@ export class CreateOrderBffDto {
   @IsArray()
   @IsString({ each: true })
   addons?: string[];
+}
+
+/** Create a topup (or order) payment request via the BFF. */
+export class CreatePaymentBffDto {
+  @IsIn(['topup', 'order'])
+  type!: 'topup' | 'order';
+
+  @IsInt()
+  @Min(1)
+  amount!: number;
+
+  @IsOptional()
+  @IsUUID()
+  orderId?: string;
+}
+
+export class UploadSlipBffDto {
+  @IsString()
+  imageObjectKey!: string;
+
+  @Matches(/^[a-f0-9]{64}$/i, { message: 'slipHash must be a SHA-256 hex digest' })
+  slipHash!: string;
 }
