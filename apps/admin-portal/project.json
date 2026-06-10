@@ -1,0 +1,16 @@
+{
+  "name": "admin-portal",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/admin-portal/src",
+  "projectType": "application",
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "cwd": "apps/admin-portal", "command": "tsc --noEmit" }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": { "cwd": "apps/admin-portal", "command": "vite" }
+    }
+  }
+}

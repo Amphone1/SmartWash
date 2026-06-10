@@ -1,0 +1,16 @@
+{
+  "name": "owner-portal",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/owner-portal/src",
+  "projectType": "application",
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "cwd": "apps/owner-portal", "command": "tsc --noEmit" }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": { "cwd": "apps/owner-portal", "command": "vite" }
+    }
+  }
+}

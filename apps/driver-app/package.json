@@ -4,6 +4,7 @@
   "private": true,
   "description": "SmartWash driver app (Expo / React Native). Standalone — install separately.",
   "main": "index.ts",
+  "nx": { "includedScripts": [] },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
