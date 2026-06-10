@@ -38,8 +38,23 @@ jobs:
       - name: Validate OpenAPI + event schemas
         run: npx nx run contracts:validate
 
+  # FastAPI services (ocr, risk) use a Python toolchain separate from Nx.
+  python-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { service: [ocr, risk] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - name: Install + test
+        working-directory: services/${{ matrix.service }}
+        run: |
+          pip install ".[dev]"
+          python -m pytest -q
+
   build:
-    needs: build-test
+    needs: [build-test, python-test]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
@@ -49,7 +64,72 @@ jobs:
       - run: npm ci
       - name: Build affected services (esbuild bundles)
         run: npx nx affected -t build --base=HEAD~1 --head=HEAD
-      # Phase 6: build + push Docker images and deploy to k3s.
-      # - name: Build affected images
-      #   run: npx nx affected -t docker
-      # - name: Push + deploy to k3s   (add registry + kubeconfig secrets)
+
+  # ── Phase 6: build + push images, then deploy to k3s ──────────────────
+  images:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions: { contents: read, packages: write }
+    strategy:
+      matrix:
+        service:
+          - auth
+          - rbac
+          - order
+          - queue
+          - bff
+          - ledger
+          - wallet
+          - payment
+          - fraud
+          - machine
+          - delivery
+          - gps
+          - settlement
+          - reconciliation
+          - saga
+          - device-sim
+          - ocr
+          - risk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest
+
+  deploy:
+    needs: images
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production # requires KUBE_CONFIG secret + approval
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+      - name: Apply config + run migration Job
+        run: |
+          kubectl apply -f infra/k8s/namespace.yaml
+          kubectl apply -f infra/k8s/config.yaml
+          # secrets are applied out-of-band (vault / sealed-secrets), not here
+          # kubectl -n smartwash create job --from=cronjob/... db-migrate-$GITHUB_SHA ...
+      - name: Roll out services
+        run: |
+          for svc in auth rbac order queue bff ledger wallet payment fraud \
+                     machine delivery gps settlement reconciliation saga; do
+            kubectl -n smartwash set image deploy/$svc \
+              $svc=ghcr.io/${{ github.repository }}/$svc:${{ github.sha }} || true
+          done
+          kubectl -n smartwash rollout status deploy/bff --timeout=120s
