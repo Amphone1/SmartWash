@@ -1,0 +1,34 @@
+{
+  "name": "device-sim",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/device-sim/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "tsc -p services/device-sim/tsconfig.app.json",
+          "node tools/build-service.mjs device-sim"
+        ],
+        "parallel": false
+      },
+      "outputs": ["{workspaceRoot}/dist/services/device-sim"],
+      "cache": true
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project services/device-sim/tsconfig.app.json services/device-sim/src/main.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint services/device-sim/src --max-warnings 0" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "jest --config services/device-sim/jest.config.ts" }
+    }
+  }
+}
