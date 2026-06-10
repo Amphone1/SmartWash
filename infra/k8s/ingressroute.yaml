@@ -1,0 +1,39 @@
+# Traefik IngressRoute — only the public edges (BFF + Auth) are exposed, mirroring
+# the dev gateway. Order/Queue/RBAC/money services stay cluster-internal.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-api
+  namespace: smartwash
+spec:
+  stripPrefix:
+    prefixes: ["/api"]
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: rate-limit
+  namespace: smartwash
+spec:
+  rateLimit:
+    average: 100
+    burst: 50
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: smartwash-public
+  namespace: smartwash
+spec:
+  entryPoints: ["websecure"]
+  routes:
+    - match: PathPrefix(`/api/bff`)
+      kind: Rule
+      middlewares: [{ name: rate-limit }, { name: strip-api }]
+      services: [{ name: bff, port: 3005 }]
+    - match: PathPrefix(`/api/auth`)
+      kind: Rule
+      middlewares: [{ name: rate-limit }, { name: strip-api }]
+      services: [{ name: auth, port: 3001 }]
+  tls:
+    certResolver: le # ACME/Let's Encrypt — configure on the Traefik install

@@ -1,0 +1,52 @@
+# Canonical NestJS service deployment. Every TS service (auth, rbac, order,
+# queue, ledger, wallet, payment, fraud, machine, delivery, gps, settlement,
+# reconciliation, bff) follows this exact shape — change image, name, port, and
+# the readiness path stays /health/ready. envFrom pulls the shared ConfigMap +
+# Secret. See README.md.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bff
+  namespace: smartwash
+  labels: { app: bff }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: bff }
+  template:
+    metadata:
+      labels: { app: bff }
+    spec:
+      containers:
+        - name: bff
+          image: registry.example.com/smartwash/bff:latest
+          ports:
+            - containerPort: 3005
+          envFrom:
+            - configMapRef: { name: smartwash-config }
+            - secretRef: { name: smartwash-secrets }
+          env:
+            - { name: PORT, value: "3005" }
+            - { name: SERVICE_NAME, value: "bff" }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 3005 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health/live, port: 3005 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests: { cpu: "50m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "512Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bff
+  namespace: smartwash
+spec:
+  selector: { app: bff }
+  ports:
+    - port: 3005
+      targetPort: 3005

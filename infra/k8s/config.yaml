@@ -1,0 +1,33 @@
+# Shared non-secret config for all services. Secrets (passwords, tokens, keys)
+# go in a separate Secret — see secret.example.yaml (never commit real values).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smartwash-config
+  namespace: smartwash
+data:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "smartwash"
+  REDIS_URL: "redis://redis:6379"
+  NATS_URL: "nats://nats:4222"
+  TEMPORAL_ADDRESS: "temporal:7233"
+  TEMPORAL_NAMESPACE: "default"
+  MQTT_URL: "mqtt://emqx:1883"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://tempo:4318"
+  KEYCLOAK_URL: "http://keycloak:8080"
+  KEYCLOAK_REALM: "smartwash"
+  # service URLs (in-cluster DNS)
+  AUTH_URL: "http://auth:3001"
+  RBAC_URL: "http://rbac:3002"
+  ORDER_URL: "http://order:3003"
+  QUEUE_URL: "http://queue:3004"
+  WALLET_URL: "http://wallet:3006"
+  LEDGER_URL: "http://ledger:3007"
+  PAYMENT_URL: "http://payment:3009"
+  DELIVERY_URL: "http://delivery:3012"
+  GPS_URL: "http://gps:3013"
+  SETTLEMENT_URL: "http://settlement:3014"
+  RECONCILIATION_URL: "http://reconciliation:3015"

@@ -1,0 +1,52 @@
+# Backup/DR CronJobs. pgBackRest for Postgres (the source of truth: ledger,
+# orders, etc.) and restic for MinIO object storage (slip images). Schedules in
+# UTC. Repositories + credentials come from secrets (not shown).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pgbackrest-backup
+  namespace: smartwash
+spec:
+  schedule: "0 17 * * *" # 00:00 Asia/Vientiane (UTC+7) — daily full/diff
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: pgbackrest
+              image: pgbackrest/pgbackrest:latest
+              args: ["backup", "--stanza=smartwash", "--type=diff"]
+              envFrom:
+                - secretRef: { name: pgbackrest-secrets }
+              volumeMounts:
+                - { name: pgbackrest-conf, mountPath: /etc/pgbackrest }
+          volumes:
+            - name: pgbackrest-conf
+              configMap: { name: pgbackrest-conf }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: restic-minio-backup
+  namespace: smartwash
+spec:
+  schedule: "30 17 * * *" # daily, after the DB backup
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: restic
+              image: restic/restic:latest
+              args: ["backup", "/data"]
+              envFrom:
+                - secretRef: { name: restic-secrets } # RESTIC_REPOSITORY, RESTIC_PASSWORD, S3 creds
+              volumeMounts:
+                - { name: minio-data, mountPath: /data, readOnly: true }
+          volumes:
+            - name: minio-data
+              persistentVolumeClaim: { claimName: minio-data }
