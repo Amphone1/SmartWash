@@ -1,0 +1,34 @@
+{
+  "name": "gps",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/gps/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "tsc -p services/gps/tsconfig.app.json",
+          "node tools/build-service.mjs gps"
+        ],
+        "parallel": false
+      },
+      "outputs": ["{workspaceRoot}/dist/services/gps"],
+      "cache": true
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project services/gps/tsconfig.app.json -r tsconfig-paths/register services/gps/src/main.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint services/gps/src --max-warnings 0" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "jest --config services/gps/jest.config.ts" }
+    }
+  }
+}
