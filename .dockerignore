@@ -1,0 +1,16 @@
+# Keep the Docker build context lean and platform-clean. Without this,
+# `COPY . .` would drag the host's Windows node_modules (wrong-platform native
+# binaries), the Python venv, caches and git history into the Linux images.
+.git
+node_modules
+**/node_modules
+.venv
+**/__pycache__
+**/.pytest_cache
+dist
+coverage
+.nx
+*.log
+tmp
+# standalone frontends are not part of any service image
+apps
