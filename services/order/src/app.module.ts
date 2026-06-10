@@ -5,6 +5,9 @@ import {
   HealthModule,
   IdempotencyService,
   MetricsModule,
+  NatsEventBus,
+  NatsModule,
+  OutboxRelay,
   RedisLock,
   RedisModule,
 } from '@smartwash/nestkit';
@@ -18,13 +21,15 @@ import { PgOrderRepository } from './infra/db/pg-order.repository';
   imports: [
     DatabaseModule,
     RedisModule,
+    NatsModule,
     MetricsModule,
-    HealthModule.forRoot([Database, RedisLock]),
+    HealthModule.forRoot([Database, RedisLock, NatsEventBus]),
   ],
   controllers: [OrdersController],
   providers: [
     OrdersService,
     IdempotencyService,
+    OutboxRelay, // publishes order.* events (OUTBOX_AGGREGATE_TYPES=order)
     { provide: MACHINE_LOOKUP, useClass: PgMachineLookup },
     { provide: ORDER_REPOSITORY, useClass: PgOrderRepository },
   ],

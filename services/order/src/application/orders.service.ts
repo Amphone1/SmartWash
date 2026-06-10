@@ -17,7 +17,7 @@ import {
   RedisLock,
   RESERVATION_TTL_SECONDS,
 } from '@smartwash/nestkit';
-import { isCancellable, type OrderState } from '../domain/order-fsm';
+import { canTransition, isCancellable, type OrderState } from '../domain/order-fsm';
 import { priceOrder, type Cycle } from '../domain/pricing';
 import {
   MACHINE_LOOKUP,
@@ -121,6 +121,27 @@ export class OrdersService {
     const order = await this.repo.findById(id);
     if (!order) throw new NotFoundError('order not found');
     return toView(order);
+  }
+
+  /**
+   * Saga-driven FSM transition (e.g. RESERVED→PAID→RUNNING→COMPLETED, or refund
+   * states). Guarded by the Order FSM; records order_events + outbox in one txn.
+   */
+  async transitionTo(
+    id: string,
+    to: OrderState,
+    event: string,
+  ): Promise<OrderView> {
+    const order = await this.repo.findById(id);
+    if (!order) throw new NotFoundError('order not found');
+    if (!canTransition(order.state, to)) {
+      throw new ConflictError(`cannot move ${order.state} → ${to}`);
+    }
+    const updated = await this.repo.transition(id, order.state, to, event, {
+      eventType: `smartwash.order.${to.toLowerCase()}.v1`,
+      payload: { orderId: id, userId: order.userId, state: to },
+    });
+    return toView(updated);
   }
 
   async cancelOrder(idempotencyKey: string, id: string): Promise<OrderView> {

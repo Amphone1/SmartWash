@@ -166,6 +166,30 @@ describe('OrdersService.createOrder', () => {
   });
 });
 
+describe('OrdersService.transitionTo', () => {
+  it('moves RESERVED → PAID via the FSM', async () => {
+    const { svc } = makeService();
+    const order = await svc.createOrder(randomUUID(), input);
+    const paid = await svc.transitionTo(order.id, 'PAID', 'wallet_deducted');
+    expect(paid.state).toBe('PAID');
+  });
+
+  it('rejects an illegal transition (409)', async () => {
+    const { svc } = makeService();
+    const order = await svc.createOrder(randomUUID(), input);
+    await expect(
+      svc.transitionTo(order.id, 'COMPLETED', 'bad'),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('404s for an unknown order', async () => {
+    const { svc } = makeService();
+    await expect(
+      svc.transitionTo(randomUUID(), 'PAID', 'x'),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+});
+
 describe('OrdersService.cancelOrder', () => {
   it('cancels a reserved order and releases the lock', async () => {
     const { svc, locks } = makeService();

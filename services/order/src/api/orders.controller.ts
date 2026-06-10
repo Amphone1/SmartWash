@@ -19,7 +19,7 @@ import {
 import { ValidationError } from '@smartwash/common';
 import { InternalTokenGuard } from '@smartwash/nestkit';
 import { OrdersService, type OrderView } from '../application/orders.service';
-import { CreateOrderDto } from './dto';
+import { CreateOrderDto, TransitionOrderDto } from './dto';
 
 @Controller('orders')
 @UseGuards(InternalTokenGuard)
@@ -47,6 +47,16 @@ export class OrdersController {
     @Headers('idempotency-key') idempotencyKey: string | undefined,
   ): Promise<OrderView> {
     return this.orders.cancelOrder(requireKey(idempotencyKey), id);
+  }
+
+  /** Saga-driven FSM transition (internal — wash_order saga). */
+  @Post(':id/transition')
+  @HttpCode(200)
+  transition(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: TransitionOrderDto,
+  ): Promise<OrderView> {
+    return this.orders.transitionTo(id, body.to, body.event);
   }
 }
 
