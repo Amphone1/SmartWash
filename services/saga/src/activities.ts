@@ -99,3 +99,140 @@ export async function postLedgerTopup(input: {
     { idempotencyKey: input.idempotencyKey },
   );
 }
+
+// ── wash_order activities ────────────────────────────────────────────
+export interface OrderDetails {
+  id: string;
+  userId: string;
+  branchId: string;
+  machineId: string;
+  state: string;
+  cycle: string;
+  total: number;
+}
+
+export async function getOrder(orderId: string): Promise<OrderDetails> {
+  const o = (await callService(config.orderUrl, `/orders/${orderId}`, 'GET')) as {
+    id: string;
+    userId: string;
+    branchId: string;
+    machineId: string;
+    state: string;
+    cycle?: string | null;
+    total: number;
+  };
+  return { ...o, cycle: o.cycle ?? 'normal' };
+}
+
+export async function walletBalance(userId: string): Promise<number> {
+  const w = (await callService(
+    config.walletUrl,
+    `/wallets/${userId}`,
+    'GET',
+    undefined,
+    { userId },
+  )) as { balance: number };
+  return w.balance;
+}
+
+export async function deductWallet(x: {
+  userId: string;
+  amount: number;
+  orderId: string;
+  idempotencyKey: string;
+}): Promise<void> {
+  await callService(
+    config.ledgerUrl,
+    '/ledger/post',
+    'POST',
+    {
+      userId: x.userId,
+      type: 'DEDUCT',
+      amount: -x.amount, // signed kip
+      refType: 'order',
+      refId: x.orderId,
+    },
+    { idempotencyKey: x.idempotencyKey },
+  );
+}
+
+export async function refundWallet(x: {
+  userId: string;
+  amount: number;
+  orderId: string;
+  idempotencyKey: string;
+}): Promise<void> {
+  await callService(
+    config.ledgerUrl,
+    '/ledger/post',
+    'POST',
+    {
+      userId: x.userId,
+      type: 'REFUND_REVERSAL',
+      amount: x.amount, // positive credit back
+      refType: 'refund',
+      refId: x.orderId,
+    },
+    { idempotencyKey: x.idempotencyKey },
+  );
+}
+
+export async function orderTransition(
+  orderId: string,
+  to: string,
+  event: string,
+): Promise<void> {
+  await callService(config.orderUrl, `/orders/${orderId}/transition`, 'POST', {
+    to,
+    event,
+  });
+}
+
+export async function machineReserve(machineId: string, orderId: string): Promise<void> {
+  await callService(
+    config.machineUrl,
+    `/internal/machines/${machineId}/reserve`,
+    'POST',
+    { orderId },
+  );
+}
+
+export async function machineStart(
+  machineId: string,
+  orderId: string,
+  cycle: string,
+): Promise<void> {
+  await callService(
+    config.machineUrl,
+    `/internal/machines/${machineId}/start`,
+    'POST',
+    { orderId, cycle },
+  );
+}
+
+export async function machineStop(machineId: string, orderId?: string): Promise<void> {
+  await callService(
+    config.machineUrl,
+    `/internal/machines/${machineId}/stop`,
+    'POST',
+    { orderId },
+  );
+}
+
+export async function machineRelease(machineId: string): Promise<void> {
+  await callService(
+    config.machineUrl,
+    `/internal/machines/${machineId}/release`,
+    'POST',
+    {},
+  );
+}
+
+export async function machineProgress(machineId: string): Promise<number> {
+  const s = (await callService(
+    config.machineUrl,
+    `/machines/${machineId}/status`,
+    'GET',
+  )) as { progress: number };
+  return s.progress ?? 0;
+}

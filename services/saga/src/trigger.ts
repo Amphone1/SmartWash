@@ -12,7 +12,14 @@ import {
 } from 'nats';
 import { Client, Connection } from '@temporalio/client';
 import { config } from './config';
-import { staffDecisionSignal, topupWorkflow, type StaffDecision } from './workflows';
+import {
+  machineEventSignal,
+  staffDecisionSignal,
+  topupWorkflow,
+  washOrderWorkflow,
+  type MachineEventType,
+  type StaffDecision,
+} from './workflows';
 
 const codec = JSONCodec();
 
@@ -38,6 +45,59 @@ export async function startTrigger(): Promise<void> {
     const d = (e.data ?? e) as Record<string, unknown>;
     await signalStaff(client, String(d.qrRef), 'reject');
   });
+
+  // wash_order: explicit start → workflow; machine events → signal.
+  await subscribe(nc, 'smartwash.order.wash_requested.v1', 'saga-wash', async (e) => {
+    const d = (e.data ?? e) as Record<string, unknown>;
+    await startWash(client, String(d.orderId));
+  });
+  const machineEvents: Record<string, MachineEventType> = {
+    'smartwash.machine.running.v1': 'running',
+    'smartwash.machine.finished.v1': 'finished',
+    'smartwash.machine.error.v1': 'error',
+  };
+  for (const [subject, type] of Object.entries(machineEvents)) {
+    await subscribe(nc, subject, `saga-machine-${type}`, async (e) => {
+      const d = (e.data ?? e) as Record<string, unknown>;
+      if (d.orderId) {
+        await signalMachine(client, String(d.orderId), type, d.errorCode as string);
+      }
+    });
+  }
+}
+
+async function startWash(client: Client, orderId: string): Promise<void> {
+  try {
+    await client.workflow.start(washOrderWorkflow, {
+      taskQueue: config.taskQueue,
+      workflowId: `wash:${orderId}`,
+      args: [
+        {
+          orderId,
+          startAckTimeoutMs: config.startAckTimeoutMs,
+          cycleTimeoutMs: config.cycleTimeoutMs,
+          refundPolicy: config.refundOnError,
+        },
+      ],
+    });
+  } catch (err) {
+    if (String(err).includes('AlreadyStarted')) return;
+    throw err;
+  }
+}
+
+async function signalMachine(
+  client: Client,
+  orderId: string,
+  type: MachineEventType,
+  errorCode?: string,
+): Promise<void> {
+  try {
+    const handle = client.workflow.getHandle(`wash:${orderId}`);
+    await handle.signal(machineEventSignal, { type, errorCode });
+  } catch {
+    // no running wash workflow for this order — ignore
+  }
 }
 
 async function startTopup(

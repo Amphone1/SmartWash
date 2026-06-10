@@ -44,6 +44,7 @@ export interface OrderView {
   machineId: string;
   type: OrderType;
   state: OrderState;
+  cycle: string | null;
   subtotal: number;
   vat: number;
   total: number;
@@ -124,6 +125,26 @@ export class OrdersService {
   }
 
   /**
+   * Explicit "start wash" — the user confirms; emits wash_requested so the
+   * wash_order saga begins (which deducts the wallet). Money never moves before
+   * this point. Only valid from RESERVED.
+   */
+  async requestWash(id: string): Promise<{ orderId: string; status: string }> {
+    const order = await this.repo.findById(id);
+    if (!order) throw new NotFoundError('order not found');
+    if (order.state !== 'RESERVED') {
+      throw new ConflictError(`wash can only start from RESERVED, not ${order.state}`);
+    }
+    await this.repo.emitOutbox(id, 'smartwash.order.wash_requested.v1', {
+      orderId: id,
+      userId: order.userId,
+      machineId: order.machineId,
+      total: Number(order.total),
+    });
+    return { orderId: id, status: 'wash_requested' };
+  }
+
+  /**
    * Saga-driven FSM transition (e.g. RESERVED→PAID→RUNNING→COMPLETED, or refund
    * states). Guarded by the Order FSM; records order_events + outbox in one txn.
    */
@@ -189,6 +210,7 @@ function toView(o: OrderRecord): OrderView {
     machineId: o.machineId,
     type: o.type,
     state: o.state,
+    cycle: o.cycle,
     // kip magnitudes for an order fit safely in a JS number.
     subtotal: Number(o.subtotal),
     vat: Number(o.vat),

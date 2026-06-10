@@ -1,4 +1,11 @@
-import { ownerMatch, routeAfterFraud, topupLedgerKey } from './routing';
+import {
+  ownerMatch,
+  refundForError,
+  routeAfterFraud,
+  topupLedgerKey,
+  washDeductKey,
+  washRefundKey,
+} from './routing';
 
 describe('saga routing helpers', () => {
   it('ownerMatch compares OCR account to the owner account', () => {
@@ -16,5 +23,28 @@ describe('saga routing helpers', () => {
     expect(topupLedgerKey('QR-abc')).toBe('topup:QR-abc');
     // stable across calls
     expect(topupLedgerKey('QR-abc')).toBe(topupLedgerKey('QR-abc'));
+  });
+
+  it('derives deterministic wash deduct/refund keys', () => {
+    expect(washDeductKey('order-1')).toBe('wash-deduct:order-1');
+    expect(washRefundKey('order-1')).toBe('wash-refund:order-1');
+  });
+
+  describe('refundForError', () => {
+    it('pro-rates the unused portion by progress', () => {
+      expect(refundForError(20000, 0, 'pro_rata')).toBe(20000); // nothing used
+      expect(refundForError(20000, 25, 'pro_rata')).toBe(15000); // 75% left
+      expect(refundForError(20000, 100, 'pro_rata')).toBe(0); // fully used
+    });
+
+    it('refunds everything under the full policy', () => {
+      expect(refundForError(20000, 50, 'full')).toBe(20000);
+    });
+
+    it('clamps out-of-range progress and stays integer kip', () => {
+      expect(refundForError(20001, 33, 'pro_rata')).toBe(Math.round((20001 * 67) / 100));
+      expect(refundForError(20000, 150, 'pro_rata')).toBe(0);
+      expect(refundForError(20000, -10, 'pro_rata')).toBe(20000);
+    });
   });
 });

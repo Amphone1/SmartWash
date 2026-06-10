@@ -21,6 +21,7 @@ interface Row {
   machine_id: string;
   type: string;
   state: string;
+  cycle: string | null;
   subtotal: string;
   vat: string;
   total: string;
@@ -35,6 +36,7 @@ function toRecord(r: Row): OrderRecord {
     machineId: r.machine_id,
     type: r.type as OrderRecord['type'],
     state: r.state as OrderState,
+    cycle: r.cycle,
     subtotal: BigInt(r.subtotal),
     vat: BigInt(r.vat),
     total: BigInt(r.total),
@@ -123,6 +125,21 @@ export class PgOrderRepository implements OrderRepository {
         payload: outbox.payload,
       });
       return toRecord(order);
+    });
+  }
+
+  async emitOutbox(
+    orderId: string,
+    eventType: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    await this.db.withTransaction(async (client) => {
+      await insertOutbox(client, {
+        aggregateType: 'order',
+        aggregateId: orderId,
+        eventType,
+        payload,
+      });
     });
   }
 

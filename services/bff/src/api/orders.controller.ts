@@ -39,4 +39,14 @@ export class OrdersController {
   get(@Param('id', new ParseUUIDPipe()) id: string): Promise<unknown> {
     return this.orders.get(id);
   }
+
+  @Post(':id/start')
+  @HttpCode(202)
+  @RequirePermission('order.create')
+  start(
+    @Req() req: AuthedRequest,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<unknown> {
+    return this.orders.requestWash(req.principal!.userId, id);
+  }
 }

@@ -51,6 +51,15 @@ export class OrderClient {
   get(id: string): Promise<unknown> {
     return callService(this.cfg.orderUrl, `/orders/${id}`, this.cfg.internalToken);
   }
+  /** Explicit start-wash (triggers the wash_order saga). */
+  requestWash(userId: string, id: string): Promise<unknown> {
+    return callService(
+      this.cfg.orderUrl,
+      `/orders/${id}/request-wash`,
+      this.cfg.internalToken,
+      { method: 'POST', userId },
+    );
+  }
 }
 
 @Injectable()

@@ -34,6 +34,7 @@ class FakeRepo implements OrderRepository {
       machineId: data.machineId,
       type: data.type,
       state: 'RESERVED',
+      cycle: data.cycle ?? null,
       subtotal: data.subtotal,
       vat: data.vat,
       total: data.total,
@@ -54,6 +55,9 @@ class FakeRepo implements OrderRepository {
     if (rec.state !== from) throw new Error('conflict');
     rec.state = to;
     return rec;
+  }
+  async emitOutbox(): Promise<void> {
+    /* no-op */
   }
 }
 

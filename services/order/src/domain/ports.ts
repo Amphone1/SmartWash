@@ -24,6 +24,7 @@ export interface OrderRecord {
   machineId: string;
   type: OrderType;
   state: OrderState;
+  cycle: string | null;
   subtotal: Kip;
   vat: Kip;
   total: Kip;
@@ -58,5 +59,11 @@ export interface OrderRepository {
     event: string,
     outbox: { eventType: string; payload: Record<string, unknown> },
   ): Promise<OrderRecord>;
+  /** Emit an outbox event without a state change (e.g. wash_requested). */
+  emitOutbox(
+    orderId: string,
+    eventType: string,
+    payload: Record<string, unknown>,
+  ): Promise<void>;
 }
 export const ORDER_REPOSITORY = Symbol('ORDER_REPOSITORY');

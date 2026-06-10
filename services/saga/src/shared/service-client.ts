@@ -7,13 +7,14 @@ export async function callService(
   path: string,
   method: 'GET' | 'POST',
   body?: unknown,
-  opts: { idempotencyKey?: string } = {},
+  opts: { idempotencyKey?: string; userId?: string } = {},
 ): Promise<unknown> {
   const headers: Record<string, string> = {
     'content-type': 'application/json',
     'x-internal-token': config.internalToken,
   };
   if (opts.idempotencyKey) headers['idempotency-key'] = opts.idempotencyKey;
+  if (opts.userId) headers['x-user-id'] = opts.userId;
 
   const res = await fetch(`${baseUrl}${path}`, {
     method,

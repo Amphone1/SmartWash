@@ -27,6 +27,13 @@ export const config = {
   fraudUrl: env('FRAUD_URL', 'http://fraud:3008'),
   paymentUrl: env('PAYMENT_URL', 'http://payment:3009'),
   ledgerUrl: env('LEDGER_URL', 'http://ledger:3007'),
+  orderUrl: env('ORDER_URL', 'http://order:3003'),
+  walletUrl: env('WALLET_URL', 'http://wallet:3006'),
+  machineUrl: env('MACHINE_URL', 'http://machine:3011'),
   staffTimeoutMs: intEnv('STAFF_REVIEW_TIMEOUT_MS', 24 * 60 * 60 * 1000),
+  // wash_order: how long to await the device's RUNNING ack, and a finished cycle.
+  startAckTimeoutMs: intEnv('WASH_START_ACK_TIMEOUT_MS', 60 * 1000),
+  cycleTimeoutMs: intEnv('WASH_CYCLE_TIMEOUT_MS', 2 * 60 * 60 * 1000),
+  refundOnError: env('WASH_REFUND_ON_ERROR', 'pro_rata'), // pro_rata | full
   port: intEnv('PORT', 3010),
 };

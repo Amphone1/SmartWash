@@ -49,6 +49,15 @@ export class OrdersController {
     return this.orders.cancelOrder(requireKey(idempotencyKey), id);
   }
 
+  /** Explicit start-wash (behind BFF) — emits wash_requested for the saga. */
+  @Post(':id/request-wash')
+  @HttpCode(202)
+  requestWash(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ orderId: string; status: string }> {
+    return this.orders.requestWash(id);
+  }
+
   /** Saga-driven FSM transition (internal — wash_order saga). */
   @Post(':id/transition')
   @HttpCode(200)

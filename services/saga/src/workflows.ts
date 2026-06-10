@@ -13,7 +13,14 @@ import {
   condition,
 } from '@temporalio/workflow';
 import type * as activities from './activities';
-import { ownerMatch, routeAfterFraud, topupLedgerKey } from './routing';
+import {
+  ownerMatch,
+  refundForError,
+  routeAfterFraud,
+  topupLedgerKey,
+  washDeductKey,
+  washRefundKey,
+} from './routing';
 
 const a = proxyActivities<typeof activities>({
   startToCloseTimeout: '30 seconds',
@@ -100,4 +107,131 @@ export async function topupWorkflow(input: TopupInput): Promise<TopupResult> {
     idempotencyKey: topupLedgerKey(input.qrRef),
   });
   return { outcome: 'approved' };
+}
+
+// ============================================================================
+// wash_order saga (docs/saga/wash_order.md). Forward steps each push a
+// compensation; failures unwind the stack (LIFO). Money moves are idempotent
+// via deterministic ledger keys, so retries/compensation never double-charge or
+// double-refund (the ledger idempotency_key UNIQUE is the backstop).
+// ============================================================================
+const w = proxyActivities<typeof activities>({
+  startToCloseTimeout: '30 seconds',
+  retry: { maximumAttempts: 5, initialInterval: '1 second' },
+});
+
+export type MachineEventType = 'running' | 'finished' | 'error';
+export interface MachineEvent {
+  type: MachineEventType;
+  errorCode?: string;
+}
+export const machineEventSignal = defineSignal<[MachineEvent]>('machineEvent');
+
+export interface WashInput {
+  orderId: string;
+  startAckTimeoutMs: number;
+  cycleTimeoutMs: number;
+  refundPolicy: string; // pro_rata | full
+}
+export interface WashResult {
+  outcome: 'completed' | 'refunded' | 'payment_pending';
+  reason?: string;
+}
+
+export async function washOrderWorkflow(input: WashInput): Promise<WashResult> {
+  const o = await w.getOrder(input.orderId);
+  const comp: Array<() => Promise<void>> = [];
+  const unwind = async (): Promise<void> => {
+    for (const c of comp.reverse()) {
+      try {
+        await c();
+      } catch {
+        /* best-effort compensation */
+      }
+    }
+  };
+
+  // Collect machine events into a buffer the conditions watch.
+  const events: MachineEvent[] = [];
+  setHandler(machineEventSignal, (e) => {
+    events.push(e);
+  });
+  const sawEvent = (t: MachineEventType): boolean =>
+    events.some((e) => e.type === t);
+
+  // 1) ReserveMachine (Order is already RESERVED from creation).
+  await w.machineReserve(o.machineId, input.orderId);
+  comp.push(() => w.machineRelease(o.machineId));
+
+  // 2) EnsureFunds — soft pre-check; the ledger DEDUCT is the real guard.
+  const balance = await w.walletBalance(o.userId);
+  if (balance < o.total) {
+    await unwind();
+    await w.orderTransition(input.orderId, 'PAYMENT_PENDING', 'insufficient_funds');
+    return { outcome: 'payment_pending', reason: 'insufficient_funds' };
+  }
+
+  // 3) DeductWallet (MONEY) — idempotent; ledger rejects overdraft.
+  try {
+    await w.deductWallet({
+      userId: o.userId,
+      amount: o.total,
+      orderId: input.orderId,
+      idempotencyKey: washDeductKey(input.orderId),
+    });
+  } catch {
+    await unwind();
+    await w.orderTransition(input.orderId, 'PAYMENT_PENDING', 'deduct_failed');
+    return { outcome: 'payment_pending', reason: 'deduct_failed' };
+  }
+  await w.orderTransition(input.orderId, 'PAID', 'wallet_deducted');
+  comp.push(() =>
+    w.refundWallet({
+      userId: o.userId,
+      amount: o.total,
+      orderId: input.orderId,
+      idempotencyKey: washRefundKey(input.orderId),
+    }),
+  );
+
+  // 4) StartMachine, then await the RUNNING status uplink (not the MQTT ack).
+  await w.machineStart(o.machineId, input.orderId, o.cycle);
+  comp.push(() => w.machineStop(o.machineId, input.orderId));
+  const running = await condition(
+    () => sawEvent('running'),
+    input.startAckTimeoutMs,
+  );
+  if (!running) {
+    await unwind(); // refund + stop + release
+    await w.orderTransition(input.orderId, 'REFUND_PENDING', 'machine_no_ack');
+    await w.orderTransition(input.orderId, 'REFUNDED', 'refunded');
+    return { outcome: 'refunded', reason: 'machine_no_ack' };
+  }
+  await w.orderTransition(input.orderId, 'RUNNING', 'machine_running');
+
+  // 5) AwaitFinish (or ERROR mid-cycle → pro-rated refund).
+  const done = await condition(
+    () => sawEvent('finished') || sawEvent('error'),
+    input.cycleTimeoutMs,
+  );
+  if (done && sawEvent('error')) {
+    const progress = await w.machineProgress(o.machineId);
+    const amount = refundForError(o.total, progress, input.refundPolicy);
+    if (amount > 0) {
+      await w.refundWallet({
+        userId: o.userId,
+        amount,
+        orderId: input.orderId,
+        idempotencyKey: washRefundKey(input.orderId),
+      });
+    }
+    await w.machineStop(o.machineId, input.orderId);
+    await w.orderTransition(input.orderId, 'REFUND_PENDING', 'machine_error');
+    await w.orderTransition(input.orderId, 'REFUNDED', 'refunded');
+    return { outcome: 'refunded', reason: 'machine_error' };
+  }
+
+  // 6) FinalizeOrder.
+  await w.orderTransition(input.orderId, 'COMPLETED', 'wash_complete');
+  return { outcome: 'completed' };
 }

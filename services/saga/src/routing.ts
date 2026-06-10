@@ -22,3 +22,25 @@ export function routeAfterFraud(state: FraudState): RouteAction {
 export function topupLedgerKey(qrRef: string): string {
   return `topup:${qrRef}`;
 }
+
+/** Deterministic ledger keys for the wash_order saga (exact-once money moves). */
+export function washDeductKey(orderId: string): string {
+  return `wash-deduct:${orderId}`;
+}
+export function washRefundKey(orderId: string): string {
+  return `wash-refund:${orderId}`;
+}
+
+/**
+ * Refund amount when a machine errors mid-cycle. pro_rata refunds the unused
+ * portion based on progress%, full refunds everything. Always integer kip.
+ */
+export function refundForError(
+  total: number,
+  progress: number,
+  policy: string,
+): number {
+  if (policy === 'full') return total;
+  const clamped = Math.max(0, Math.min(100, progress));
+  return Math.round((total * (100 - clamped)) / 100);
+}
