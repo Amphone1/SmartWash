@@ -17,6 +17,7 @@ import {
   WalletClient,
 } from './infra/external/clients';
 import { CatalogRepository } from './infra/db/catalog.repository';
+import { ReportingRepository } from './infra/db/reporting.repository';
 import { BffAuthGuard } from './api/auth.guard';
 import { PermissionsGuard } from './api/permissions.guard';
 import { CatalogController } from './api/catalog.controller';
@@ -25,6 +26,7 @@ import { QueueController } from './api/queue.controller';
 import { TopupController } from './api/topup.controller';
 import { DriverController } from './api/driver.controller';
 import { DeliveryTrackController } from './api/delivery-track.controller';
+import { ReportingController } from './api/reporting.controller';
 
 @Module({
   imports: [DatabaseModule, MetricsModule, HealthModule.forRoot([Database])],
@@ -35,6 +37,7 @@ import { DeliveryTrackController } from './api/delivery-track.controller';
     TopupController,
     DriverController,
     DeliveryTrackController,
+    ReportingController,
   ],
   providers: [
     ServicesConfig,
@@ -47,6 +50,7 @@ import { DeliveryTrackController } from './api/delivery-track.controller';
     DeliveryClient,
     GpsClient,
     CatalogRepository,
+    ReportingRepository,
     BffAuthGuard,
     PermissionsGuard,
   ],
