@@ -120,7 +120,7 @@ const w = proxyActivities<typeof activities>({
   retry: { maximumAttempts: 5, initialInterval: '1 second' },
 });
 
-export type MachineEventType = 'running' | 'finished' | 'error';
+export type MachineEventType = 'running' | 'finished' | 'error' | 'offline';
 export interface MachineEvent {
   type: MachineEventType;
   errorCode?: string;
@@ -159,8 +159,10 @@ export async function washOrderWorkflow(input: WashInput): Promise<WashResult> {
   const sawEvent = (t: MachineEventType): boolean =>
     events.some((e) => e.type === t);
 
-  // 1) ReserveMachine (Order is already RESERVED from creation).
+  // 1) ReserveMachine (Order is already RESERVED from creation). The Redis
+  //    reservation lock (made at order create) is released on every exit path.
   await w.machineReserve(o.machineId, input.orderId);
+  comp.push(() => w.releaseOrderLock(input.orderId));
   comp.push(() => w.machineRelease(o.machineId));
 
   // 2) EnsureFunds — soft pre-check; the ledger DEDUCT is the real guard.
@@ -197,26 +199,37 @@ export async function washOrderWorkflow(input: WashInput): Promise<WashResult> {
   );
 
   // 4) StartMachine, then await the RUNNING status uplink (not the MQTT ack).
+  //    A device that goes OFFLINE (LWT/heartbeat) before acking = no-ack.
   await w.machineStart(o.machineId, input.orderId, o.cycle);
   comp.push(() => w.machineStop(o.machineId, input.orderId));
-  const running = await condition(
-    () => sawEvent('running'),
+  const acked = await condition(
+    () => sawEvent('running') || sawEvent('offline'),
     input.startAckTimeoutMs,
   );
-  if (!running) {
-    await unwind(); // refund + stop + release
+  if (!acked || sawEvent('offline')) {
+    await unwind(); // stop + refund(FULL) + machine release + lock release
     await w.orderTransition(input.orderId, 'REFUND_PENDING', 'machine_no_ack');
     await w.orderTransition(input.orderId, 'REFUNDED', 'refunded');
-    return { outcome: 'refunded', reason: 'machine_no_ack' };
+    return { outcome: 'refunded', reason: acked ? 'machine_offline' : 'machine_no_ack' };
   }
   await w.orderTransition(input.orderId, 'RUNNING', 'machine_running');
 
-  // 5) AwaitFinish (or ERROR mid-cycle → pro-rated refund).
+  // 5) AwaitFinish. ERROR / OFFLINE mid-cycle and a cycle TIMEOUT all refund
+  //    pro-rata by last-known progress — a silent 2h timeout must never
+  //    complete the order and keep the money (E2E-audit bug).
   const done = await condition(
-    () => sawEvent('finished') || sawEvent('error'),
+    () => sawEvent('finished') || sawEvent('error') || sawEvent('offline'),
     input.cycleTimeoutMs,
   );
-  if (done && sawEvent('error')) {
+  const failureReason = !done
+    ? 'wash_timeout'
+    : sawEvent('error')
+      ? 'machine_error'
+      : sawEvent('offline')
+        ? 'machine_offline'
+        : null;
+
+  if (failureReason !== null) {
     const progress = await w.machineProgress(o.machineId);
     const amount = refundForError(o.total, progress, input.refundPolicy);
     if (amount > 0) {
@@ -226,16 +239,19 @@ export async function washOrderWorkflow(input: WashInput): Promise<WashResult> {
         orderId: input.orderId,
         idempotencyKey: washRefundKey(input.orderId),
         type: amount >= o.total ? 'FULL' : 'PARTIAL',
-        reason: 'machine_error',
+        reason: failureReason,
       });
     }
     await w.machineStop(o.machineId, input.orderId);
-    await w.orderTransition(input.orderId, 'REFUND_PENDING', 'machine_error');
+    await w.releaseOrderLock(input.orderId);
+    await w.orderTransition(input.orderId, 'REFUND_PENDING', failureReason);
     await w.orderTransition(input.orderId, 'REFUNDED', 'refunded');
-    return { outcome: 'refunded', reason: 'machine_error' };
+    return { outcome: 'refunded', reason: failureReason };
   }
 
-  // 6) FinalizeOrder.
+  // 6) FinalizeOrder — release the reservation lock so the machine is
+  //    immediately bookable again (the device returns itself to IDLE).
+  await w.releaseOrderLock(input.orderId);
   await w.orderTransition(input.orderId, 'COMPLETED', 'wash_complete');
   return { outcome: 'completed' };
 }

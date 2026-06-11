@@ -191,6 +191,11 @@ export async function orderTransition(
   });
 }
 
+/** Release the order's machine reservation lock (token = orderId; no-op safe). */
+export async function releaseOrderLock(orderId: string): Promise<void> {
+  await callService(config.orderUrl, `/orders/${orderId}/release-lock`, 'POST', {});
+}
+
 export async function machineReserve(machineId: string, orderId: string): Promise<void> {
   await callService(
     config.machineUrl,

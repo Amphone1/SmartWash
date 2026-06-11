@@ -172,6 +172,21 @@ export class OrdersService {
   }
 
   /**
+   * Release this order's machine reservation lock (saga finalize/compensation).
+   * Token = orderId, so it can only ever release its own lock; a no-op if the
+   * lock already expired or was taken over by a newer order.
+   */
+  async releaseReservation(id: string): Promise<{ released: boolean }> {
+    const order = await this.repo.findById(id);
+    if (!order) throw new NotFoundError('order not found');
+    const released = await this.locks.release({
+      key: machineLockKey(order.machineId),
+      token: id,
+    });
+    return { released };
+  }
+
+  /**
    * Saga-driven FSM transition (e.g. RESERVED→PAID→RUNNING→COMPLETED, or refund
    * states). Guarded by the Order FSM; records order_events + outbox in one txn.
    */

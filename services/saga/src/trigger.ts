@@ -57,6 +57,7 @@ export async function startTrigger(): Promise<void> {
     'smartwash.machine.running.v1': 'running',
     'smartwash.machine.finished.v1': 'finished',
     'smartwash.machine.error.v1': 'error',
+    'smartwash.machine.offline.v1': 'offline',
   };
   for (const [subject, type] of Object.entries(machineEvents)) {
     await subscribe(nc, subject, `saga-machine-${type}`, async (e) => {

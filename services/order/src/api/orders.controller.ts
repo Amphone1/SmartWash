@@ -68,6 +68,15 @@ export class OrdersController {
     return this.orders.requestDelivery(id, { ...body.pickup }, { ...body.dropoff });
   }
 
+  /** Release the machine reservation lock (internal — saga finalize/comp). */
+  @Post(':id/release-lock')
+  @HttpCode(200)
+  releaseLock(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ released: boolean }> {
+    return this.orders.releaseReservation(id);
+  }
+
   /** Saga-driven FSM transition (internal — wash_order saga). */
   @Post(':id/transition')
   @HttpCode(200)

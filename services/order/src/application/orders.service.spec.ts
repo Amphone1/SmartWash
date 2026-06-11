@@ -170,6 +170,36 @@ describe('OrdersService.createOrder', () => {
   });
 });
 
+describe('OrdersService.releaseReservation', () => {
+  it('releases the machine lock so the machine is bookable again', async () => {
+    const { svc, locks } = makeService();
+    const order = await svc.createOrder(randomUUID(), input);
+    expect(locks.held.size).toBe(1);
+    const res = await svc.releaseReservation(order.id);
+    expect(res.released).toBe(true);
+    expect(locks.held.size).toBe(0);
+    // machine immediately bookable by a new order
+    await expect(svc.createOrder(randomUUID(), input)).resolves.toMatchObject({
+      state: 'RESERVED',
+    });
+  });
+
+  it('is a safe no-op when the lock already expired/was retaken', async () => {
+    const { svc, locks } = makeService();
+    const order = await svc.createOrder(randomUUID(), input);
+    locks.held.clear(); // simulate TTL expiry
+    const res = await svc.releaseReservation(order.id);
+    expect(res.released).toBe(false);
+  });
+
+  it('404s for an unknown order', async () => {
+    const { svc } = makeService();
+    await expect(svc.releaseReservation(randomUUID())).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+});
+
 describe('OrdersService.transitionTo', () => {
   it('moves RESERVED → PAID via the FSM', async () => {
     const { svc } = makeService();
