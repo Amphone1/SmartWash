@@ -27,6 +27,45 @@
         "total":     { "type": "integer", "description": "kip" }
       }
     },
+    "OrderWashRequested": {
+      "type": "object",
+      "required": ["orderId", "userId", "machineId", "total"],
+      "properties": {
+        "orderId":   { "type": "string", "format": "uuid" },
+        "userId":    { "type": "string", "format": "uuid" },
+        "machineId": { "type": "string", "format": "uuid" },
+        "total":     { "type": "integer", "description": "kip" }
+      }
+    },
+    "OrderDeliveryRequested": {
+      "type": "object",
+      "required": ["orderId", "userId", "pickup", "dropoff"],
+      "properties": {
+        "orderId": { "type": "string", "format": "uuid" },
+        "userId":  { "type": "string", "format": "uuid" },
+        "pickup":  { "type": "object", "description": "{ addr, lat, lng }" },
+        "dropoff": { "type": "object", "description": "{ addr, lat, lng }" }
+      }
+    },
+    "OrderStateChanged": {
+      "description": "smartwash.order.<state>.v1 — saga-driven FSM transitions (paid, running, completed, refund_pending, refunded…)",
+      "type": "object",
+      "required": ["orderId", "userId", "state"],
+      "properties": {
+        "orderId": { "type": "string", "format": "uuid" },
+        "userId":  { "type": "string", "format": "uuid" },
+        "state":   { "type": "string", "enum": ["RESERVED", "PAID", "RUNNING", "COMPLETED", "REFUND_PENDING", "REFUNDED", "CANCELLED"] }
+      }
+    },
+    "OrderCancelled": {
+      "type": "object",
+      "required": ["orderId", "userId", "previousState"],
+      "properties": {
+        "orderId":       { "type": "string", "format": "uuid" },
+        "userId":        { "type": "string", "format": "uuid" },
+        "previousState": { "type": "string" }
+      }
+    },
     "SlipUploaded": {
       "type": "object",
       "required": ["qrRef", "slipId", "userId", "slipHash"],
@@ -99,6 +138,41 @@
       "properties": {
         "machineId": { "type": "string", "format": "uuid" },
         "lastSeen":  { "type": "string", "format": "date-time" }
+      }
+    },
+    "DeliveryCreated": {
+      "type": "object",
+      "required": ["deliveryId", "orderId", "fee"],
+      "properties": {
+        "deliveryId": { "type": "string", "format": "uuid" },
+        "orderId":    { "type": "string", "format": "uuid" },
+        "fee":        { "type": "integer", "description": "kip" }
+      }
+    },
+    "DeliveryAssigned": {
+      "type": "object",
+      "required": ["deliveryId", "driverId", "orderId"],
+      "properties": {
+        "deliveryId": { "type": "string", "format": "uuid" },
+        "driverId":   { "type": "string", "format": "uuid" },
+        "orderId":    { "type": "string", "format": "uuid" }
+      }
+    },
+    "DeliveryStateChanged": {
+      "description": "smartwash.delivery.<state>.v1 — accepted, rejected, and driver advances (en_route_pickup, picked_up, in_transit, delivered)",
+      "type": "object",
+      "required": ["deliveryId", "driverId"],
+      "properties": {
+        "deliveryId": { "type": "string", "format": "uuid" },
+        "driverId":   { "type": "string", "format": "uuid" }
+      }
+    },
+    "DeliveryCompleted": {
+      "type": "object",
+      "required": ["deliveryId", "orderId"],
+      "properties": {
+        "deliveryId": { "type": "string", "format": "uuid" },
+        "orderId":    { "type": "string", "format": "uuid" }
       }
     }
   }

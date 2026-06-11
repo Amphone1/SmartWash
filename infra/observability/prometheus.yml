@@ -1,5 +1,5 @@
-# Prometheus dev scrape config. Services expose /metrics (rule #7); add a
-# scrape job per service as it comes online in later phases.
+# Prometheus dev scrape config. Every service exposes /metrics (rule #7).
+# Targets use compose DNS names; ports match each service's defaultPort.
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
@@ -9,9 +9,38 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # Phase 0 has no services yet. As each NestJS/FastAPI service is added,
-  # append a job here, e.g.:
-  # - job_name: ledger
-  #   metrics_path: /metrics
-  #   static_configs:
-  #     - targets: ['ledger:3000']
+  # NestJS services (prom-client default registry via MetricsModule)
+  - job_name: smartwash-services
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - auth:3001
+          - rbac:3002
+          - order:3003
+          - queue:3004
+          - bff:3005
+          - wallet:3006
+          - ledger:3007
+          - fraud:3008
+          - payment:3009
+          - machine:3011
+          - delivery:3012
+          - gps:3013
+          - settlement:3014
+          - reconciliation:3015
+          - notification:3016
+          - audit:3017
+
+  # Temporal worker — bare node:http health/metrics server (services/saga/src/health.ts)
+  - job_name: saga
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['saga:3010']
+
+  # FastAPI services (prometheus_client)
+  - job_name: smartwash-python
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - ocr:8001
+          - risk:8002

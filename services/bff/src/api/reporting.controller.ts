@@ -23,7 +23,11 @@ import {
   type OwnerSummary,
   type ReconRun,
 } from '../infra/db/reporting.repository';
-import { ReconciliationClient, SettlementClient } from '../infra/external/clients';
+import {
+  AuditClient,
+  ReconciliationClient,
+  SettlementClient,
+} from '../infra/external/clients';
 
 @Controller('bff')
 @UseGuards(BffAuthGuard, PermissionsGuard)
@@ -32,6 +36,7 @@ export class ReportingController {
     private readonly reporting: ReportingRepository,
     private readonly settlements: SettlementClient,
     private readonly recon: ReconciliationClient,
+    private readonly audit: AuditClient,
   ) {}
 
   @Get('owner/summary')
@@ -71,6 +76,20 @@ export class ReportingController {
   @RequirePermission('report.view')
   reconRuns(@Query('limit') limit?: string): Promise<ReconRun[]> {
     return this.reporting.reconRuns(limit ? Number.parseInt(limit, 10) : 20);
+  }
+
+  @Get('admin/audit')
+  @RequirePermission('report.view')
+  auditTrail(
+    @Req() req: AuthedRequest,
+    @Query('entityId') entityId?: string,
+    @Query('limit') limit?: string,
+  ): Promise<unknown> {
+    return this.audit.list(
+      req.principal!.userId,
+      entityId,
+      limit ? Number.parseInt(limit, 10) : undefined,
+    );
   }
 
   @Post('admin/reconciliation/run')

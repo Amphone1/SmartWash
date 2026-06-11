@@ -9,9 +9,11 @@ import {
 } from '@smartwash/nestkit';
 import { ServicesConfig } from './config/services.config';
 import {
+  AuditClient,
   AuthClient,
   DeliveryClient,
   GpsClient,
+  NotificationClient,
   OrderClient,
   PaymentClient,
   QueueClient,
@@ -60,6 +62,8 @@ import { ReportingController } from './api/reporting.controller';
     GpsClient,
     SettlementClient,
     ReconciliationClient,
+    NotificationClient,
+    AuditClient,
     CatalogRepository,
     ReportingRepository,
     BffAuthGuard,

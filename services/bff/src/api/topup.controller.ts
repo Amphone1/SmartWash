@@ -11,6 +11,7 @@ import {
   HttpCode,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -19,7 +20,11 @@ import { RateLimit, RateLimitGuard } from '@smartwash/nestkit';
 import { BffAuthGuard, type AuthedRequest } from './auth.guard';
 import { PermissionsGuard, RequirePermission } from './permissions.guard';
 import { CreatePaymentBffDto, UploadSlipBffDto } from './dto';
-import { PaymentClient, WalletClient } from '../infra/external/clients';
+import {
+  NotificationClient,
+  PaymentClient,
+  WalletClient,
+} from '../infra/external/clients';
 
 function requireKey(key: string | undefined): string {
   if (!key) throw new ValidationError('Idempotency-Key header is required');
@@ -32,6 +37,7 @@ export class TopupController {
   constructor(
     private readonly payments: PaymentClient,
     private readonly wallets: WalletClient,
+    private readonly notifications: NotificationClient,
   ) {}
 
   @Post('payments')
@@ -76,5 +82,17 @@ export class TopupController {
   @RequirePermission('wallet.view.own')
   wallet(@Req() req: AuthedRequest): Promise<unknown> {
     return this.wallets.get(req.principal!.userId);
+  }
+
+  /** The authenticated user's own notifications (self-scoped downstream too). */
+  @Get('notifications')
+  notificationsList(
+    @Req() req: AuthedRequest,
+    @Query('limit') limit?: string,
+  ): Promise<unknown> {
+    return this.notifications.listForUser(
+      req.principal!.userId,
+      limit ? Number.parseInt(limit, 10) : undefined,
+    );
   }
 }
