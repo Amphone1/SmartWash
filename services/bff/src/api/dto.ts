@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsIn,
+  IsISO8601,
   IsInt,
   IsLatitude,
   IsLongitude,
@@ -116,6 +117,12 @@ class StatementLineBffDto {
   @IsOptional()
   @IsString()
   sender?: string;
+
+  // accepted by the reconciliation service; was missing here, so
+  // forbidNonWhitelisted rejected statements that carried it (E2E-caught)
+  @IsOptional()
+  @IsISO8601()
+  txnDate?: string;
 }
 
 export class RunReconBffDto {

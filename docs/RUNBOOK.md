@@ -128,6 +128,14 @@ K6_TOKEN=<jwt> BRANCH_ID=<uuid> MACHINE_ID=<uuid> k6 run tools/k6/wash.js
 
 ## 6. Gotchas
 
+- **Mint tokens in-network.** Auth validates `iss = http://keycloak:8080/...`
+  (in-cluster DNS), so fetch tokens from inside the compose network (e.g.
+  `docker compose exec bff node -e "fetch('http://keycloak:8080/...')"`); a
+  token minted via `localhost:8080` carries the wrong issuer and is rejected.
+- **Docker Desktop DNS can be flaky right after start** (lookups fail mid-pull
+  with "no such host"). Just re-run `docker compose up -d --build` — progress is
+  cached. Traefik also doesn't see file changes through Windows bind mounts;
+  `docker compose restart traefik` after editing `dynamic.yml`.
 - **`INTERNAL_SERVICE_TOKEN` must be set** — internal endpoints fail-closed
   (deny) without it.
 - **No seed data / Keycloak realm** → 401s. Do §3 first.
