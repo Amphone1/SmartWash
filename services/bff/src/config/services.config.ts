@@ -13,6 +13,8 @@ export class ServicesConfig {
   readonly paymentUrl = optionalEnv('PAYMENT_URL', 'http://payment:3009');
   readonly deliveryUrl = optionalEnv('DELIVERY_URL', 'http://delivery:3012');
   readonly gpsUrl = optionalEnv('GPS_URL', 'http://gps:3013');
+  readonly notificationUrl = optionalEnv('NOTIFICATION_URL', 'http://notification:3016');
+  readonly auditUrl = optionalEnv('AUDIT_URL', 'http://audit:3017');
   readonly settlementUrl = optionalEnv('SETTLEMENT_URL', 'http://settlement:3014');
   readonly reconciliationUrl = optionalEnv(
     'RECONCILIATION_URL',

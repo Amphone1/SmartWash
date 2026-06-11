@@ -298,6 +298,25 @@ services:
       SERVICE_NAME: gps
     depends_on: *service-depends
 
+  # ── Hardening additions (notification + audit) ─────
+  notification:
+    build: { context: ../.., dockerfile: services/notification/Dockerfile }
+    environment:
+      <<: *service-env
+      SERVICE_NAME: notification
+    depends_on:
+      <<: *service-depends
+      nats: { condition: service_started }
+
+  audit:
+    build: { context: ../.., dockerfile: services/audit/Dockerfile }
+    environment:
+      <<: *service-env
+      SERVICE_NAME: audit
+    depends_on:
+      <<: *service-depends
+      nats: { condition: service_started }
+
   # ── Phase 5 services (Finance) ─────────────────────
   settlement:
     build: { context: ../.., dockerfile: services/settlement/Dockerfile }
