@@ -56,7 +56,6 @@
     "@nestjs/websockets": "^11.0.1",
     "ioredis": "^5.4.2",
     "jose": "^5.9.6",
-    "minio": "^8.0.2",
     "mqtt": "^5.10.3",
     "socket.io": "^4.8.1",
     "nats": "^2.29.2",

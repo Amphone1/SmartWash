@@ -3,7 +3,7 @@
  * base = the machine's price, optionally scaled by cycle, plus per-addon fees,
  * then VAT applied as basis points. No floats anywhere.
  */
-import { type Kip, add, applyBasisPoints, multiply, toKip } from '@smartwash/common';
+import { type Kip, add, applyBasisPoints, toKip } from '@smartwash/common';
 
 export type Cycle = 'quick' | 'normal' | 'heavy';
 
@@ -32,9 +32,4 @@ export function priceOrder(
   const vat = applyBasisPoints(subtotal, vatBps);
   const total = add(subtotal, vat);
   return { subtotal, vat, total };
-}
-
-/** Convenience used by tests/seed: scale a price by an integer count. */
-export function lineTotal(unit: Kip, qty: number): Kip {
-  return multiply(unit, qty);
 }

@@ -2,5 +2,4 @@
 export * from './lib/money';
 export * from './lib/errors';
 export * from './lib/idempotency';
-export * from './lib/logger';
 export * from './lib/otel';

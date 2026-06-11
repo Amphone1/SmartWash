@@ -27,15 +27,6 @@ export interface Machine {
   state: string;
 }
 
-function uuid(): string {
-  // RFC4122 v4 — used for Idempotency-Key on writes.
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
 async function get<T>(path: string, token: string): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { authorization: `Bearer ${token}` },
@@ -50,20 +41,4 @@ export const api = {
   listBranches: (token: string) => get<Branch[]>('/bff/branches', token),
   listMachines: (token: string, branchId: string) =>
     get<Machine[]>(`/bff/branches/${branchId}/machines`, token),
-  createOrder: async (
-    token: string,
-    body: { branchId: string; machineId: string; type: string; cycle?: string },
-  ) => {
-    const res = await fetch(`${BASE_URL}/bff/orders`, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-        'idempotency-key': uuid(),
-      },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
-    return res.json();
-  },
 };
