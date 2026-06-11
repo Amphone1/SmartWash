@@ -14,3 +14,4 @@ coverage
 tmp
 # standalone frontends are not part of any service image
 apps
+build-out

@@ -95,7 +95,7 @@ services:
     ports: ["3100:3100"]
 
   tempo:
-    image: grafana/tempo:latest
+    image: grafana/tempo:2.7.1 # latest (3.x) changed the config schema
     command: ["-config.file=/etc/tempo.yaml"]
     ports: ["4318:4318"]   # OTLP http
     volumes:

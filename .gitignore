@@ -50,3 +50,6 @@ libs/**/src/**/*.map
 services/**/src/**/*.js
 services/**/src/**/*.d.ts
 services/**/src/**/*.map
+
+# service-bundle emit step (tools/build-service.mjs)
+build-out/

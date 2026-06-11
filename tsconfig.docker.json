@@ -1,0 +1,25 @@
+{
+  // Emit step for service bundles (tools/build-service.mjs step 1).
+  // esbuild cannot emit TypeScript's design:paramtypes decorator metadata,
+  // which NestJS constructor injection requires — so tsc emits real JS (with
+  // metadata) into build-out/, and esbuild then bundles that JS.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "build-out",
+    "rootDir": ".",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "incremental": true,
+    "tsBuildInfoFile": "build-out/.tsbuildinfo",
+    "sourceMap": false,
+    "declaration": false,
+    "types": ["node"]
+  },
+  "include": [
+    "libs/common/src/**/*.ts",
+    "libs/nestkit/src/**/*.ts",
+    "services/*/src/**/*.ts"
+  ],
+  "exclude": ["**/*.spec.ts", "node_modules"]
+}
