@@ -21,12 +21,18 @@ $KC create clients -r smartwash \
   -s standardFlowEnabled=true \
   -s 'redirectUris=["*"]' 2>/dev/null || true
 
-# Users — username MUST equal users.phone in the DB seed
+# Users — username MUST equal users.phone in the DB seed. Clear requiredActions
+# + mark email verified, or ROPC fails with "Account is not fully set up".
 for u in 2055501001:Customer:One 2055502001:Driver:One 2055503001:Owner:One 2055504001:Admin:One; do
   phone="${u%%:*}"; rest="${u#*:}"; first="${rest%%:*}"; last="${rest#*:}"
   $KC create users -r smartwash \
     -s "username=$phone" -s enabled=true \
     -s "firstName=$first" -s "lastName=$last" 2>/dev/null || true
+  uid=$($KC get users -r smartwash -q "username=$phone" --fields id --format csv --noquotes | head -1)
+  # email is a REQUIRED profile attribute in KC 24+ — without it the dynamic
+  # Verify Profile action rejects direct grants ("Account is not fully set up").
+  $KC update "users/$uid" -r smartwash -s 'requiredActions=[]' \
+    -s emailVerified=true -s "email=user$phone@dev.local"
   $KC set-password -r smartwash --username "$phone" --new-password "dev-pass-$phone"
 done
 

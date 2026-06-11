@@ -2,6 +2,9 @@
 # the BFF (customer app aggregator) and Auth (token endpoints). Order, Queue,
 # RBAC and all money/finance services are intentionally NOT exposed — internal
 # only on the compose network, reachable solely by the BFF with the internal token.
+#
+# NOTE (Traefik v3): a router with `tls` only serves TLS traffic — so each edge
+# needs a plain-HTTP router (dev) AND a TLS router (websecure) separately.
 http:
   middlewares:
     strip-api:
@@ -15,15 +18,25 @@ http:
         burst: 50
 
   routers:
-    bff:
+    bff-web:
       rule: "PathPrefix(`/api/bff`)"
-      entryPoints: ["web", "websecure"]
+      entryPoints: ["web"]
+      middlewares: ["rate-limit", "strip-api"]
+      service: bff
+    bff-secure:
+      rule: "PathPrefix(`/api/bff`)"
+      entryPoints: ["websecure"]
       middlewares: ["rate-limit", "strip-api"]
       service: bff
       tls: {} # dev: Traefik self-signed; prod: set a certResolver (ACME)
-    auth:
+    auth-web:
       rule: "PathPrefix(`/api/auth`)"
-      entryPoints: ["web", "websecure"]
+      entryPoints: ["web"]
+      middlewares: ["rate-limit", "strip-api"]
+      service: auth
+    auth-secure:
+      rule: "PathPrefix(`/api/auth`)"
+      entryPoints: ["websecure"]
       middlewares: ["rate-limit", "strip-api"]
       service: auth
       tls: {}
