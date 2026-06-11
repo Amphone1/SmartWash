@@ -22,7 +22,7 @@ export class AuditConsumer implements OnApplicationBootstrap {
     await this.bus.subscribe('smartwash.>', 'audit-firehose', async (envelope) => {
       const draft = mapEventToAudit(envelope as never);
       if (draft) await this.repo.append(draft);
-    });
+    }, { maxDeliver: 5 });
     this.logger.log('audit firehose subscribed (smartwash.>)');
   }
 }

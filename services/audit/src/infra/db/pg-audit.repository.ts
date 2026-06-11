@@ -33,13 +33,20 @@ export class PgAuditRepository {
     );
   }
 
-  async list(entityId: string | null, limit: number): Promise<AuditEntry[]> {
+  async list(entityId: string | null, limit: number, before: number | null = null): Promise<AuditEntry[]> {
     const params: unknown[] = [];
-    let where = '';
+    const conditions: string[] = [];
+
     if (entityId) {
       params.push(entityId);
-      where = `WHERE entity_id = $1`;
+      conditions.push(`entity_id = $${params.length}`);
     }
+    if (before !== null) {
+      params.push(before);
+      conditions.push(`id < $${params.length}`);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     params.push(Math.min(limit, 200));
     const { rows } = await this.db.getPool().query(
       `SELECT id, actor_id, actor_role, action, entity_type, entity_id, after, created_at

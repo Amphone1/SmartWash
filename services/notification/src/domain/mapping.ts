@@ -62,4 +62,5 @@ export const SUBSCRIBED_SUBJECTS = [
   'smartwash.payment.rejected.v1',
   'smartwash.order.completed.v1',
   'smartwash.order.refunded.v1',
+  'smartwash.delivery.assigned.v1',
 ] as const;

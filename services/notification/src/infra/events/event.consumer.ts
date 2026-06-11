@@ -27,7 +27,7 @@ export class EventConsumer implements OnApplicationBootstrap {
           await this.repo.record(draft);
           this.logger.debug(`queued ${draft.type} for ${draft.userId}`);
         }
-      });
+      }, { maxDeliver: 5 });
     }
   }
 }

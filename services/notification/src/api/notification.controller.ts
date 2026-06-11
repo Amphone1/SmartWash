@@ -24,9 +24,11 @@ export class NotificationController {
   list(
     @Param('userId', new ParseUUIDPipe()) userId: string,
     @Headers(USER_ID_HEADER) callerId: string | undefined,
+    @Headers('x-caller-role') callerRole: string | undefined,
     @Query('limit') limit?: string,
   ): Promise<NotificationView[]> {
-    if (!callerId || callerId !== userId) {
+    const privileged = callerRole === 'admin' || callerRole === 'staff';
+    if (!privileged && (!callerId || callerId !== userId)) {
       throw new ForbiddenError('can only view your own notifications');
     }
     return this.repo.listForUser(userId, limit ? Number.parseInt(limit, 10) : 20);

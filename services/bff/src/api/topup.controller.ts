@@ -86,6 +86,7 @@ export class TopupController {
 
   /** The authenticated user's own notifications (self-scoped downstream too). */
   @Get('notifications')
+  @RateLimit(60, 60, 'user')
   notificationsList(
     @Req() req: AuthedRequest,
     @Query('limit') limit?: string,

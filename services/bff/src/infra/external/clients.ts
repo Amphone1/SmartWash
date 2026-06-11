@@ -195,7 +195,7 @@ export class GpsClient {
 export class NotificationClient {
   constructor(private readonly cfg: ServicesConfig) {}
   listForUser(userId: string, limit?: number): Promise<unknown> {
-    const qs = limit ? `?limit=${limit}` : '';
+    const qs = limit != null ? `?limit=${limit}` : '';
     return callService(
       this.cfg.notificationUrl,
       `/notifications/users/${userId}${qs}`,
@@ -210,8 +210,8 @@ export class AuditClient {
   constructor(private readonly cfg: ServicesConfig) {}
   list(userId: string, entityId?: string, limit?: number): Promise<unknown> {
     const params = new URLSearchParams();
-    if (entityId) params.set('entityId', entityId);
-    if (limit) params.set('limit', String(limit));
+    if (entityId != null) params.set('entityId', entityId);
+    if (limit != null) params.set('limit', String(limit));
     const qs = params.size > 0 ? `?${params.toString()}` : '';
     return callService(this.cfg.auditUrl, `/audit${qs}`, this.cfg.internalToken, {
       userId,

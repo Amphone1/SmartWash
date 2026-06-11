@@ -35,6 +35,11 @@ export interface PublishOptions {
   correlationId?: string;
 }
 
+export interface SubscribeOptions {
+  /** Max total delivery attempts before JetStream stops retrying (default: unlimited). */
+  maxDeliver?: number;
+}
+
 export interface EventBus {
   publish(
     subject: string,
@@ -46,6 +51,7 @@ export interface EventBus {
     subject: string,
     durable: string,
     handler: (payload: Record<string, unknown>) => Promise<void>,
+    opts?: SubscribeOptions,
   ): Promise<void>;
   jetstream(): JetStreamClient;
 }
@@ -97,13 +103,15 @@ export class NatsEventBus
     subject: string,
     durable: string,
     handler: (payload: Record<string, unknown>) => Promise<void>,
+    opts: SubscribeOptions = {},
   ): Promise<void> {
-    const opts = consumerOpts();
-    opts.durable(durable);
-    opts.manualAck();
-    opts.ackExplicit();
-    opts.deliverTo(createInbox());
-    const sub = await this.jetstream().subscribe(subject, opts);
+    const copts = consumerOpts();
+    copts.durable(durable);
+    copts.manualAck();
+    copts.ackExplicit();
+    copts.deliverTo(createInbox());
+    if (opts.maxDeliver !== undefined) copts.maxDeliver(opts.maxDeliver);
+    const sub = await this.jetstream().subscribe(subject, copts);
     void (async () => {
       for await (const m of sub) {
         try {

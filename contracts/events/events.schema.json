@@ -161,10 +161,11 @@
     "DeliveryStateChanged": {
       "description": "smartwash.delivery.<state>.v1 — accepted, rejected, and driver advances (en_route_pickup, picked_up, in_transit, delivered)",
       "type": "object",
-      "required": ["deliveryId", "driverId"],
+      "required": ["deliveryId", "driverId", "state"],
       "properties": {
         "deliveryId": { "type": "string", "format": "uuid" },
-        "driverId":   { "type": "string", "format": "uuid" }
+        "driverId":   { "type": "string", "format": "uuid" },
+        "state":      { "type": "string", "enum": ["ACCEPTED", "REJECTED", "EN_ROUTE_PICKUP", "PICKED_UP", "IN_TRANSIT", "DELIVERED"] }
       }
     },
     "DeliveryCompleted": {

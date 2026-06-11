@@ -71,7 +71,12 @@ export class AuditController {
   list(
     @Query('entityId') entityId?: string,
     @Query('limit') limit?: string,
+    @Query('before') before?: string,
   ): Promise<AuditEntry[]> {
-    return this.repo.list(entityId ?? null, limit ? Number.parseInt(limit, 10) : 50);
+    return this.repo.list(
+      entityId ?? null,
+      limit ? Number.parseInt(limit, 10) : 50,
+      before ? Number.parseInt(before, 10) : null,
+    );
   }
 }
