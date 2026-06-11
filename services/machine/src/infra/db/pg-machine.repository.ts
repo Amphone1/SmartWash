@@ -119,7 +119,10 @@ export class PgMachineRepository implements MachineRepository {
           u.machineId,
           u.branchId,
           u.state,
-          u.progress ?? 0,
+          // NULL (not 0) so the COALESCE keeps the stored progress on updates
+          // without telemetry — e.g. LWT/sweep OFFLINE must not wipe progress,
+          // the saga reads it for the pro-rata refund.
+          u.progress ?? null,
           u.remainingMin ?? null,
           u.clearOrder ? null : currentOrder,
           u.clearOrder ?? false,
