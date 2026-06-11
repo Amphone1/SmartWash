@@ -131,7 +131,8 @@ export interface WashInput {
   orderId: string;
   startAckTimeoutMs: number;
   cycleTimeoutMs: number;
-  refundPolicy: string; // pro_rata | full
+  refundPolicy: string; // grace_pro_rata | pro_rata | full
+  refundGracePct?: number; // grace_pro_rata: full refund below this progress%
 }
 export interface WashResult {
   outcome: 'completed' | 'refunded' | 'payment_pending';
@@ -231,7 +232,12 @@ export async function washOrderWorkflow(input: WashInput): Promise<WashResult> {
 
   if (failureReason !== null) {
     const progress = await w.machineProgress(o.machineId);
-    const amount = refundForError(o.total, progress, input.refundPolicy);
+    const amount = refundForError(
+      o.total,
+      progress,
+      input.refundPolicy,
+      input.refundGracePct,
+    );
     if (amount > 0) {
       await w.refundWallet({
         userId: o.userId,

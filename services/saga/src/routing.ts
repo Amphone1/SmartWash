@@ -32,15 +32,21 @@ export function washRefundKey(orderId: string): string {
 }
 
 /**
- * Refund amount when a machine errors mid-cycle. pro_rata refunds the unused
- * portion based on progress%, full refunds everything. Always integer kip.
+ * Refund amount when a machine errors mid-cycle. Always integer kip.
+ *   full           — refund everything regardless of progress.
+ *   grace_pro_rata — failures before the cycle reaches gracePct% refund in
+ *                    full (clothes are still wet/soapy — the customer got
+ *                    nothing); from gracePct% onward refund the unused portion.
+ *   pro_rata       — refund the unused portion based on progress%.
  */
 export function refundForError(
   total: number,
   progress: number,
   policy: string,
+  gracePct = 20,
 ): number {
   if (policy === 'full') return total;
   const clamped = Math.max(0, Math.min(100, progress));
+  if (policy === 'grace_pro_rata' && clamped < gracePct) return total;
   return Math.round((total * (100 - clamped)) / 100);
 }

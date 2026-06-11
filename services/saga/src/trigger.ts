@@ -122,6 +122,7 @@ async function startWash(client: Client, orderId: string): Promise<void> {
           startAckTimeoutMs: config.startAckTimeoutMs,
           cycleTimeoutMs: config.cycleTimeoutMs,
           refundPolicy: config.refundOnError,
+          refundGracePct: config.refundGracePct,
         },
       ],
     });

@@ -46,6 +46,24 @@ describe('saga routing helpers', () => {
       expect(refundForError(20000, 50, 'full')).toBe(20000);
     });
 
+    it('grace_pro_rata: full refund before the grace threshold', () => {
+      expect(refundForError(20000, 0, 'grace_pro_rata')).toBe(20000);
+      expect(refundForError(20000, 15, 'grace_pro_rata')).toBe(20000);
+      expect(refundForError(20000, 19, 'grace_pro_rata')).toBe(20000);
+    });
+
+    it('grace_pro_rata: pro-rata from the threshold onward', () => {
+      expect(refundForError(20000, 20, 'grace_pro_rata')).toBe(16000); // boundary: pro-rata
+      expect(refundForError(20000, 50, 'grace_pro_rata')).toBe(10000);
+      expect(refundForError(20000, 90, 'grace_pro_rata')).toBe(2000);
+      expect(refundForError(20000, 100, 'grace_pro_rata')).toBe(0);
+    });
+
+    it('grace_pro_rata: honours a custom threshold', () => {
+      expect(refundForError(20000, 29, 'grace_pro_rata', 30)).toBe(20000);
+      expect(refundForError(20000, 30, 'grace_pro_rata', 30)).toBe(14000);
+    });
+
     it('clamps out-of-range progress and stays integer kip', () => {
       expect(refundForError(20001, 33, 'pro_rata')).toBe(Math.round((20001 * 67) / 100));
       expect(refundForError(20000, 150, 'pro_rata')).toBe(0);

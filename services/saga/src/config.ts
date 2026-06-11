@@ -35,7 +35,9 @@ export const config = {
   // wash_order: how long to await the device's RUNNING ack, and a finished cycle.
   startAckTimeoutMs: intEnv('WASH_START_ACK_TIMEOUT_MS', 60 * 1000),
   cycleTimeoutMs: intEnv('WASH_CYCLE_TIMEOUT_MS', 2 * 60 * 60 * 1000),
-  refundOnError: env('WASH_REFUND_ON_ERROR', 'pro_rata'), // pro_rata | full
+  refundOnError: env('WASH_REFUND_ON_ERROR', 'grace_pro_rata'), // grace_pro_rata | pro_rata | full
+  // grace_pro_rata: failure before this progress% refunds in full
+  refundGracePct: intEnv('WASH_REFUND_GRACE_PCT', 20),
   deliveryTimeoutMs: intEnv('DELIVERY_TIMEOUT_MS', 6 * 60 * 60 * 1000),
   port: intEnv('PORT', 3010),
 };
