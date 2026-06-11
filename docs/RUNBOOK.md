@@ -45,11 +45,19 @@ DC="docker compose -f infra/docker/docker-compose.dev.yml"
 $DC ps
 
 # per-service readiness, from inside the network (ports are the in-container ones)
+# NB: the node:slim images have no wget/curl — use node's built-in fetch.
 for s in auth:3001 rbac:3002 order:3003 queue:3004 bff:3005 wallet:3006 \
-         ledger:3007 fraud:3008 payment:3009 machine:3011 delivery:3012 \
-         gps:3013 settlement:3014 reconciliation:3015 ocr:8001 risk:8002; do
+         ledger:3007 fraud:3008 payment:3009 saga:3010 machine:3011 delivery:3012 \
+         gps:3013 settlement:3014 reconciliation:3015 notification:3016 audit:3017; do
   svc=${s%%:*}; port=${s##*:}
-  echo -n "$svc "; $DC exec -T "$svc" sh -c "wget -qO- localhost:$port/health/ready || true"; echo
+  echo -n "$svc "
+  $DC exec -T "$svc" node -e "fetch('http://localhost:$port/health/ready').then(r=>r.text()).then(console.log).catch(e=>console.log('FAIL '+e.message))"
+done
+# FastAPI services ship python, not node
+for s in ocr:8001 risk:8002; do
+  svc=${s%%:*}; port=${s##*:}
+  echo -n "$svc "
+  $DC exec -T "$svc" python -c "import urllib.request;print(urllib.request.urlopen('http://localhost:$port/health/ready').read().decode())"
 done
 
 # gateway smoke from the host (expects 401 — auth enforced at the edge)
