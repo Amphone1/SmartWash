@@ -45,7 +45,7 @@ services:
     ports: ["4222:4222", "8222:8222"]
 
   emqx:
-    image: emqx/emqx:5
+    image: emqx/emqx:5.10.4 # bare :5 tag no longer exists on Docker Hub
     ports: ["1883:1883", "18083:18083"]   # mqtt + dashboard
     environment:
       EMQX_DASHBOARD__DEFAULT_PASSWORD: change_me
@@ -270,9 +270,8 @@ services:
     environment:
       MQTT_URL: mqtt://emqx:1883
       MQTT_USERNAME: device
-      # Configure machines to emulate (must match DB rows), e.g.:
-      # SIM_DEVICES: '[{"machineId":"<uuid>","branchId":"<uuid>","code":"W001"}]'
-      SIM_DEVICES: "[]"
+      # Machines to emulate — matches tools/seed/dev-seed.sql fixtures.
+      SIM_DEVICES: '[{"machineId":"aa000000-0000-4000-8000-000000000001","branchId":"b0000000-0000-4000-8000-000000000001","code":"W001"},{"machineId":"aa000000-0000-4000-8000-000000000002","branchId":"b0000000-0000-4000-8000-000000000001","code":"D001"}]'
       SIM_STEP_MS: "2000"
     depends_on:
       emqx: { condition: service_started }
