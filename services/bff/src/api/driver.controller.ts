@@ -20,6 +20,7 @@ import { PermissionsGuard, RequirePermission } from './permissions.guard';
 import { AdvanceBffDto, ReportLocationDto } from './dto';
 import { DeliveryClient, GpsClient } from '../infra/external/clients';
 import { CatalogRepository } from '../infra/db/catalog.repository';
+import { ReportingRepository } from '../infra/db/reporting.repository';
 
 @Controller('bff/driver')
 @UseGuards(BffAuthGuard, PermissionsGuard)
@@ -28,6 +29,7 @@ export class DriverController {
     private readonly deliveries: DeliveryClient,
     private readonly gps: GpsClient,
     private readonly catalog: CatalogRepository,
+    private readonly reporting: ReportingRepository,
   ) {}
 
   private async driverId(req: AuthedRequest): Promise<string> {
@@ -40,6 +42,21 @@ export class DriverController {
   @RequirePermission('delivery.view')
   async list(@Req() req: AuthedRequest): Promise<unknown> {
     return this.deliveries.listForDriver(req.principal!.userId, await this.driverId(req));
+  }
+
+  @Get('deliveries/:id')
+  @RequirePermission('delivery.view')
+  async detail(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<unknown> {
+    return this.deliveries.getDetail(id);
+  }
+
+  @Get('earnings')
+  @RequirePermission('delivery.view')
+  async earnings(@Req() req: AuthedRequest): Promise<unknown> {
+    const driverId = await this.driverId(req);
+    return this.reporting.driverEarnings(driverId);
   }
 
   @Post('deliveries/:id/accept')

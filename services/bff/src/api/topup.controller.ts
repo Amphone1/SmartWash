@@ -19,10 +19,11 @@ import { ValidationError } from '@smartwash/common';
 import { RateLimit, RateLimitGuard } from '@smartwash/nestkit';
 import { BffAuthGuard, type AuthedRequest } from './auth.guard';
 import { PermissionsGuard, RequirePermission } from './permissions.guard';
-import { CreatePaymentBffDto, UploadSlipBffDto } from './dto';
+import { CreatePaymentBffDto, SubmitRatingBffDto, UploadSlipBffDto } from './dto';
 import {
   NotificationClient,
   PaymentClient,
+  RatingsClient,
   WalletClient,
 } from '../infra/external/clients';
 
@@ -38,6 +39,7 @@ export class TopupController {
     private readonly payments: PaymentClient,
     private readonly wallets: WalletClient,
     private readonly notifications: NotificationClient,
+    private readonly ratings: RatingsClient,
   ) {}
 
   @Post('payments')
@@ -95,5 +97,25 @@ export class TopupController {
       req.principal!.userId,
       limit ? Number.parseInt(limit, 10) : undefined,
     );
+  }
+
+  @Post('notifications/read-all')
+  @HttpCode(204)
+  @RateLimit(10, 60, 'user')
+  markAllRead(@Req() req: AuthedRequest): Promise<unknown> {
+    return this.notifications.markAllRead(req.principal!.userId);
+  }
+
+  @Post('ratings')
+  @HttpCode(201)
+  @RequirePermission('order.view.own')
+  @RateLimit(20, 60, 'user')
+  submitRating(
+    @Req() req: AuthedRequest,
+    @Headers('idempotency-key') key: string | undefined,
+    @Body() body: SubmitRatingBffDto,
+  ): Promise<unknown> {
+    if (!key) throw new ValidationError('Idempotency-Key header is required');
+    return this.ratings.submit(key, req.principal!.userId, body);
   }
 }

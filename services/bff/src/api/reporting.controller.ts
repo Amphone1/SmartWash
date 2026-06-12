@@ -7,7 +7,10 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
+  Param,
+  ParseUUIDPipe,
   Post,
   Query,
   Req,
@@ -16,7 +19,7 @@ import {
 import { ValidationError } from '@smartwash/common';
 import { BffAuthGuard, type AuthedRequest } from './auth.guard';
 import { PermissionsGuard, RequirePermission } from './permissions.guard';
-import { RunReconBffDto, RunSettlementBffDto } from './dto';
+import { RejectSlipBffDto, RunReconBffDto, RunSettlementBffDto } from './dto';
 import {
   ReportingRepository,
   type AdminSummary,
@@ -25,6 +28,7 @@ import {
 } from '../infra/db/reporting.repository';
 import {
   AuditClient,
+  PaymentClient,
   ReconciliationClient,
   SettlementClient,
 } from '../infra/external/clients';
@@ -37,13 +41,94 @@ export class ReportingController {
     private readonly settlements: SettlementClient,
     private readonly recon: ReconciliationClient,
     private readonly audit: AuditClient,
+    private readonly payments: PaymentClient,
   ) {}
+
+  private branchFromJwt(req: AuthedRequest): string | undefined {
+    const roles = req.principal?.roles ?? [];
+    return roles.find((r) => r.branchId != null)?.branchId ?? undefined;
+  }
 
   @Get('owner/summary')
   @RequirePermission('report.view')
-  owner(@Query('branchId') branchId?: string): Promise<OwnerSummary> {
-    if (!branchId) throw new ValidationError('branchId is required');
-    return this.reporting.ownerSummary(branchId);
+  owner(
+    @Req() req: AuthedRequest,
+    @Query('branchId') branchId?: string,
+  ): Promise<OwnerSummary> {
+    const bid = branchId ?? this.branchFromJwt(req);
+    if (!bid) throw new ValidationError('branchId is required');
+    return this.reporting.ownerSummary(bid);
+  }
+
+  @Get('owner/machines')
+  @RequirePermission('report.view')
+  ownerMachines(
+    @Req() req: AuthedRequest,
+    @Query('branchId') branchId?: string,
+  ) {
+    const bid = branchId ?? this.branchFromJwt(req);
+    if (!bid) throw new ValidationError('branchId is required');
+    return this.reporting.ownerMachines(bid);
+  }
+
+  @Get('owner/orders')
+  @RequirePermission('report.view')
+  ownerOrders(
+    @Req() req: AuthedRequest,
+    @Query('branchId') branchId?: string,
+    @Query('status') status?: string,
+  ) {
+    const bid = branchId ?? this.branchFromJwt(req);
+    if (!bid) throw new ValidationError('branchId is required');
+    return this.reporting.ownerOrders(bid, status);
+  }
+
+  @Get('owner/slips')
+  @RequirePermission('report.view')
+  ownerSlips(
+    @Req() req: AuthedRequest,
+    @Query('branchId') branchId?: string,
+    @Query('status') status?: string,
+  ): Promise<unknown> {
+    const bid = branchId ?? this.branchFromJwt(req);
+    if (!bid) throw new ValidationError('branchId is required');
+    return this.payments.listSlips(req.principal!.userId, bid, status);
+  }
+
+  @Post('owner/slips/:slipId/approve')
+  @HttpCode(200)
+  @RequirePermission('payment.approve')
+  approveSlip(
+    @Req() req: AuthedRequest,
+    @Param('slipId', new ParseUUIDPipe()) slipId: string,
+    @Headers('idempotency-key') key: string | undefined,
+  ): Promise<unknown> {
+    if (!key) throw new ValidationError('Idempotency-Key header is required');
+    return this.payments.approveSlip(key, req.principal!.userId, slipId);
+  }
+
+  @Post('owner/slips/:slipId/reject')
+  @HttpCode(200)
+  @RequirePermission('payment.approve')
+  rejectSlip(
+    @Req() req: AuthedRequest,
+    @Param('slipId', new ParseUUIDPipe()) slipId: string,
+    @Headers('idempotency-key') key: string | undefined,
+    @Body() body: RejectSlipBffDto,
+  ): Promise<unknown> {
+    if (!key) throw new ValidationError('Idempotency-Key header is required');
+    return this.payments.rejectSlip(key, req.principal!.userId, slipId, body.reason);
+  }
+
+  @Get('owner/stats/hourly')
+  @RequirePermission('report.view')
+  ownerHourly(
+    @Req() req: AuthedRequest,
+    @Query('branchId') branchId?: string,
+  ) {
+    const bid = branchId ?? this.branchFromJwt(req);
+    if (!bid) throw new ValidationError('branchId is required');
+    return this.reporting.ownerHourlyStats(bid);
   }
 
   @Get('owner/settlements')

@@ -51,6 +51,14 @@ export class OrderClient {
   get(id: string): Promise<unknown> {
     return callService(this.cfg.orderUrl, `/orders/${id}`, this.cfg.internalToken);
   }
+  listForUser(userId: string): Promise<unknown> {
+    return callService(
+      this.cfg.orderUrl,
+      '/orders',
+      this.cfg.internalToken,
+      { userId },
+    );
+  }
   /** Explicit start-wash (triggers the wash_order saga). */
   requestWash(userId: string, id: string): Promise<unknown> {
     return callService(
@@ -116,6 +124,36 @@ export class PaymentClient {
       { userId },
     );
   }
+  listSlips(userId: string, branchId: string, status?: string): Promise<unknown> {
+    const qs = new URLSearchParams({ branchId, ...(status ? { status } : {}) });
+    return callService(
+      this.cfg.paymentUrl,
+      `/internal/slips?${qs.toString()}`,
+      this.cfg.internalToken,
+      { userId },
+    );
+  }
+  approveSlip(idempotencyKey: string, userId: string, slipId: string): Promise<unknown> {
+    return callService(
+      this.cfg.paymentUrl,
+      `/internal/slips/${slipId}/approve`,
+      this.cfg.internalToken,
+      { method: 'POST', idempotencyKey, userId },
+    );
+  }
+  rejectSlip(
+    idempotencyKey: string,
+    userId: string,
+    slipId: string,
+    reason: string,
+  ): Promise<unknown> {
+    return callService(
+      this.cfg.paymentUrl,
+      `/internal/slips/${slipId}/reject`,
+      this.cfg.internalToken,
+      { method: 'POST', body: { reason }, idempotencyKey, userId },
+    );
+  }
 }
 
 @Injectable()
@@ -162,6 +200,9 @@ export class DeliveryClient {
       { method: 'POST', userId },
     );
   }
+  getDetail(id: string): Promise<unknown> {
+    return callService(this.cfg.deliveryUrl, `/deliveries/${id}`, this.cfg.internalToken);
+  }
   private action(userId: string, id: string, verb: string, body: unknown): Promise<unknown> {
     return callService(
       this.cfg.deliveryUrl,
@@ -203,6 +244,14 @@ export class NotificationClient {
       { userId },
     );
   }
+  markAllRead(userId: string): Promise<unknown> {
+    return callService(
+      this.cfg.notificationUrl,
+      `/notifications/users/${userId}/read-all`,
+      this.cfg.internalToken,
+      { method: 'POST', userId },
+    );
+  }
 }
 
 @Injectable()
@@ -237,6 +286,19 @@ export class SettlementClient {
       this.cfg.internalToken,
       { userId },
     );
+  }
+}
+
+@Injectable()
+export class RatingsClient {
+  constructor(private readonly cfg: ServicesConfig) {}
+  submit(idempotencyKey: string, userId: string, body: unknown): Promise<unknown> {
+    return callService(this.cfg.orderUrl, '/ratings', this.cfg.internalToken, {
+      method: 'POST',
+      body,
+      idempotencyKey,
+      userId,
+    });
   }
 }
 

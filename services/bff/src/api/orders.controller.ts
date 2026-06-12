@@ -36,6 +36,13 @@ export class OrdersController {
     return this.orders.create(key, { ...body, userId: req.principal!.userId });
   }
 
+  /** List the authenticated user's own orders (last 100). */
+  @Get()
+  @RequirePermission('order.view.own')
+  list(@Req() req: AuthedRequest): Promise<unknown> {
+    return this.orders.listForUser(req.principal!.userId);
+  }
+
   @Get(':id')
   @RequirePermission('order.view.own')
   get(@Param('id', new ParseUUIDPipe()) id: string): Promise<unknown> {

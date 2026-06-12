@@ -137,3 +137,25 @@ export class RunReconBffDto {
   @Type(() => StatementLineBffDto)
   statementLines!: StatementLineBffDto[];
 }
+
+export class SubmitRatingBffDto {
+  @IsUUID()
+  orderId!: string;
+
+  @IsInt()
+  @Min(1)
+  rating!: number;
+
+  @IsArray()
+  @IsString({ each: true })
+  tags!: string[];
+
+  @IsOptional()
+  @IsString()
+  comment?: string;
+}
+
+export class RejectSlipBffDto {
+  @IsString()
+  reason!: string;
+}
