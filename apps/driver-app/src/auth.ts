@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
+import { resolveDevUrl } from './dev-host';
 
 const STORE_KEY = 'sw_driver_token';
 
@@ -20,9 +21,10 @@ const tokenStore = {
       ? Promise.resolve(globalThis.localStorage?.removeItem(k))
       : SecureStore.deleteItemAsync(k),
 };
-const KEYCLOAK_URL: string =
+const KEYCLOAK_URL: string = resolveDevUrl(
   (Constants.expoConfig?.extra?.keycloakUrl as string | undefined) ??
-  'http://localhost:8080';
+    'http://localhost:8080',
+);
 
 interface AuthContextValue {
   token: string | null;

@@ -1,8 +1,10 @@
 import Constants from 'expo-constants';
+import { resolveDevUrl } from './dev-host';
 
-const BASE_URL: string =
+const BASE_URL: string = resolveDevUrl(
   (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ??
-  'http://localhost:8088/api';
+    'http://localhost:8088/api',
+);
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
