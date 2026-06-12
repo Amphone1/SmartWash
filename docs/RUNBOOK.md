@@ -134,7 +134,42 @@ K6_TOKEN=<jwt> BRANCH_ID=<uuid> MACHINE_ID=<uuid> k6 run tools/k6/wash.js
 
 ---
 
-## 6. Gotchas
+## 6. UI testing (browser + real device)
+
+**Browser (portals + Expo web).** One-time, as Administrator:
+`Add-Content C:\Windows\System32\drivers\etc\hosts "127.0.0.1 keycloak"` — the
+UIs log in at `http://keycloak:8080` so the token issuer matches what the auth
+service validates. Then `npm run dev` in `apps/owner-portal` / `apps/admin-portal`
+(Vite 5173/5174) and `npx expo start --web` in `apps/customer-app` /
+`apps/driver-app` (Metro picks 8082 — 8081 is Traefik's dashboard). The Traefik
+`dev-cors` middleware + Keycloak `webOrigins` already allow these origins.
+Dev users: 205550{1..4}001 / `dev-pass-<phone>` (customer/driver/owner/admin).
+
+**Real device (Expo Go).** The phone can't resolve `keycloak`, so pin Keycloak's
+public hostname to this machine's LAN IP (one issuer for every client):
+
+```powershell
+$env:LAN_IP = "192.168.x.x"     # this PC's Wi-Fi IP (Get-NetIPAddress)
+docker compose -f infra/docker/docker-compose.dev.yml `
+  -f infra/docker/docker-compose.lan.yml up -d keycloak auth
+# keycloak was recreated -> dev realm is gone; reseed:
+docker compose -f infra/docker/docker-compose.dev.yml exec -T keycloak `
+  bash -c 'bash' < tools/seed/keycloak-setup.sh
+
+cd apps/customer-app   # or apps/driver-app
+$env:SMARTWASH_API_URL = "http://$($env:LAN_IP):8088/api"
+$env:SMARTWASH_KEYCLOAK_URL = "http://$($env:LAN_IP):8080"
+npx expo start          # scan the QR with Expo Go — phone on the SAME Wi-Fi
+```
+
+If the phone can't reach the PC, allow the ports once (Administrator):
+`New-NetFirewallRule -DisplayName "SmartWash dev" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080,8088,8082,8083,19000-19006`.
+Drop the overlay (plain dev compose `up -d keycloak auth` + reseed) to return
+to the `keycloak:8080` issuer. The browser flow keeps working in LAN mode.
+
+---
+
+## 7. Gotchas
 
 - **Mint tokens in-network.** Auth validates `iss = http://keycloak:8080/...`
   (in-cluster DNS), so fetch tokens from inside the compose network (e.g.
@@ -157,7 +192,7 @@ K6_TOKEN=<jwt> BRANCH_ID=<uuid> MACHINE_ID=<uuid> k6 run tools/k6/wash.js
 
 ---
 
-## 7. Backup / DR & deploy
+## 8. Backup / DR & deploy
 
 - Backup/DR (pgBackRest + restic) and RPO/RTO: `infra/backup/README.md`.
 - k3s deploy manifests (review before applying): `infra/k8s/README.md`.

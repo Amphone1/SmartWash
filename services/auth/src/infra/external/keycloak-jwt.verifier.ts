@@ -21,15 +21,23 @@ export class KeycloakJwtVerifier implements TokenVerifier, ReadinessCheck {
   private readonly logger = new Logger('KeycloakJwtVerifier');
   private readonly issuer: string;
   private readonly audience?: string;
+  /** In-network realm base for JWKS/readiness (may differ from the issuer). */
+  private readonly realmBase: string;
   private readonly jwks: ReturnType<typeof createRemoteJWKSet>;
 
   constructor() {
     const base = requireEnv('KEYCLOAK_URL').replace(/\/+$/, '');
     const realm = requireEnv('KEYCLOAK_REALM');
-    this.issuer = `${base}/realms/${realm}`;
+    this.realmBase = `${base}/realms/${realm}`;
+    // When Keycloak's public hostname differs from its in-network address
+    // (KC_HOSTNAME set for device testing / prod), tokens carry the PUBLIC
+    // issuer while keys must still be fetched over the internal URL.
+    const issuerBase =
+      optionalEnv('KEYCLOAK_ISSUER_URL', '').replace(/\/+$/, '') || base;
+    this.issuer = `${issuerBase}/realms/${realm}`;
     this.audience = optionalEnv('KEYCLOAK_AUDIENCE', '') || undefined;
     this.jwks = createRemoteJWKSet(
-      new URL(`${this.issuer}/protocol/openid-connect/certs`),
+      new URL(`${this.realmBase}/protocol/openid-connect/certs`),
     );
   }
 
@@ -55,7 +63,7 @@ export class KeycloakJwtVerifier implements TokenVerifier, ReadinessCheck {
   async check(): Promise<boolean> {
     try {
       const res = await fetch(
-        `${this.issuer}/protocol/openid-connect/certs`,
+        `${this.realmBase}/protocol/openid-connect/certs`,
         { method: 'GET' },
       );
       return res.ok;

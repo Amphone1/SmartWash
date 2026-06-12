@@ -1,0 +1,22 @@
+# LAN overlay — real-device testing (Expo Go on a phone). Layers on top of the
+# dev compose to pin Keycloak's public hostname to this machine's LAN IP so
+# tokens minted from the phone carry an issuer the auth service accepts.
+#
+#   $env:LAN_IP = "192.168.x.x"   # this PC's Wi-Fi/LAN address
+#   docker compose -f infra/docker/docker-compose.dev.yml `
+#     -f infra/docker/docker-compose.lan.yml up -d keycloak auth
+#   docker compose -f infra/docker/docker-compose.dev.yml exec -T keycloak `
+#     bash < tools/seed/keycloak-setup.sh   # keycloak recreate wipes the dev realm
+#
+# With KC_HOSTNAME set EVERY token (phone, browser, in-network scripts) carries
+# iss=http://$LAN_IP:8080/... — one issuer for all clients. Drop the overlay
+# (plain dev compose up -d keycloak auth + reseed) to return to keycloak:8080.
+services:
+  keycloak:
+    environment:
+      KC_HOSTNAME: http://${LAN_IP:?set LAN_IP to this machine's LAN address}:8080
+
+  auth:
+    environment:
+      # Validate the public issuer; JWKS still fetched via http://keycloak:8080.
+      KEYCLOAK_ISSUER_URL: http://${LAN_IP:?set LAN_IP to this machine's LAN address}:8080
