@@ -1,8 +1,25 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 
 const TOKEN_KEY = 'sw_token';
+
+// SecureStore is unavailable on web (expo web testing) — fall back to localStorage.
+const tokenStore = {
+  get: (k: string): Promise<string | null> =>
+    Platform.OS === 'web'
+      ? Promise.resolve(globalThis.localStorage?.getItem(k) ?? null)
+      : SecureStore.getItemAsync(k),
+  set: (k: string, v: string): Promise<void> =>
+    Platform.OS === 'web'
+      ? Promise.resolve(globalThis.localStorage?.setItem(k, v))
+      : SecureStore.setItemAsync(k, v),
+  del: (k: string): Promise<void> =>
+    Platform.OS === 'web'
+      ? Promise.resolve(globalThis.localStorage?.removeItem(k))
+      : SecureStore.deleteItemAsync(k),
+};
 
 const KEYCLOAK_URL: string =
   (Constants.expoConfig?.extra?.keycloakUrl as string | undefined) ??
@@ -48,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const stored = await SecureStore.getItemAsync(TOKEN_KEY);
+        const stored = await tokenStore.get(TOKEN_KEY);
         if (stored) setToken(stored);
       } catch {
         // ignore
@@ -86,12 +103,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('This account does not have customer access.');
     }
 
-    await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
+    await tokenStore.set(TOKEN_KEY, accessToken);
     setToken(accessToken);
   }
 
   async function logout(): Promise<void> {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await tokenStore.del(TOKEN_KEY);
     setToken(null);
   }
 

@@ -15,7 +15,8 @@
       "package": "com.smartwash.customer"
     },
     "extra": {
-      "apiBaseUrl": "http://localhost:8088/api"
+      "apiBaseUrl": "http://localhost:8088/api",
+      "keycloakUrl": "http://keycloak:8080"
     }
   }
 }

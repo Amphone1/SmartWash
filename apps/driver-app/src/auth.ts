@@ -1,8 +1,25 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 
 const STORE_KEY = 'sw_driver_token';
+
+// SecureStore is unavailable on web (expo web testing) — fall back to localStorage.
+const tokenStore = {
+  get: (k: string): Promise<string | null> =>
+    Platform.OS === 'web'
+      ? Promise.resolve(globalThis.localStorage?.getItem(k) ?? null)
+      : SecureStore.getItemAsync(k),
+  set: (k: string, v: string): Promise<void> =>
+    Platform.OS === 'web'
+      ? Promise.resolve(globalThis.localStorage?.setItem(k, v))
+      : SecureStore.setItemAsync(k, v),
+  del: (k: string): Promise<void> =>
+    Platform.OS === 'web'
+      ? Promise.resolve(globalThis.localStorage?.removeItem(k))
+      : SecureStore.deleteItemAsync(k),
+};
 const KEYCLOAK_URL: string =
   (Constants.expoConfig?.extra?.keycloakUrl as string | undefined) ??
   'http://localhost:8080';
@@ -46,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    SecureStore.getItemAsync(STORE_KEY)
+    tokenStore.get(STORE_KEY)
       .then((stored) => {
         if (stored) setToken(stored);
       })
@@ -84,12 +101,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('This account does not have driver access.');
     }
 
-    await SecureStore.setItemAsync(STORE_KEY, accessToken);
+    await tokenStore.set(STORE_KEY, accessToken);
     setToken(accessToken);
   }, []);
 
   const logout = useCallback(async () => {
-    await SecureStore.deleteItemAsync(STORE_KEY).catch(() => {});
+    await tokenStore.del(STORE_KEY).catch(() => {});
     setToken(null);
   }, []);
 

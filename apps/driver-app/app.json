@@ -9,6 +9,9 @@
     "newArchEnabled": true,
     "splash": { "backgroundColor": "#16A34A" },
     "android": { "package": "com.smartwash.driver" },
-    "extra": { "apiBaseUrl": "http://localhost:8088/api" }
+    "extra": {
+      "apiBaseUrl": "http://localhost:8088/api",
+      "keycloakUrl": "http://keycloak:8080"
+    }
   }
 }

@@ -16,12 +16,27 @@ http:
       rateLimit:
         average: 100
         burst: 50
+    # DEV ONLY: let the Vite portals (5173/5174) and Expo web (8082/19006) call
+    # the gateway from the browser. Prod serves the portals from the same origin
+    # (or pins exact origins) — never ship localhost origins.
+    dev-cors:
+      headers:
+        accessControlAllowMethods: ["GET", "POST", "DELETE", "OPTIONS"]
+        accessControlAllowHeaders:
+          ["authorization", "content-type", "idempotency-key"]
+        accessControlAllowOriginList:
+          - "http://localhost:5173"
+          - "http://localhost:5174"
+          - "http://localhost:8082"
+          - "http://localhost:19006"
+        accessControlMaxAge: 600
+        addVaryHeader: true
 
   routers:
     bff-web:
       rule: "PathPrefix(`/api/bff`)"
       entryPoints: ["web"]
-      middlewares: ["rate-limit", "strip-api"]
+      middlewares: ["dev-cors", "rate-limit", "strip-api"]
       service: bff
     bff-secure:
       rule: "PathPrefix(`/api/bff`)"
@@ -32,7 +47,7 @@ http:
     auth-web:
       rule: "PathPrefix(`/api/auth`)"
       entryPoints: ["web"]
-      middlewares: ["rate-limit", "strip-api"]
+      middlewares: ["dev-cors", "rate-limit", "strip-api"]
       service: auth
     auth-secure:
       rule: "PathPrefix(`/api/auth`)"
