@@ -30,7 +30,7 @@ function NotifCard({ notif }: { notif: Notification }) {
   const isUnread = !notif.readAt;
 
   return (
-    <Card style={[styles.card, isUnread && styles.cardUnread]}>
+    <Card style={[styles.card, isUnread ? styles.cardUnread : undefined]}>
       <View style={[styles.iconWrap, isUnread && styles.iconWrapUnread]}>
         <Ionicons
           name={icon}

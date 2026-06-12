@@ -50,7 +50,7 @@ function OrderCard({ order }: { order: Order }) {
   const isCancelled = CANCELLED_STATES.has(order.status);
 
   return (
-    <Card style={[styles.orderCard, isActive && styles.activeCard]}>
+    <Card style={[styles.orderCard, isActive ? styles.activeCard : undefined]}>
       <View style={styles.cardHeader}>
         <Text style={styles.orderId}>#{order.id.slice(0, 8).toUpperCase()}</Text>
         <Badge status={order.status} />

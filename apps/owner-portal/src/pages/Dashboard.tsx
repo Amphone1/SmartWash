@@ -16,9 +16,6 @@ import { Badge } from '../components/Badge';
 import { formatKip, formatDate } from '../utils';
 import { COLORS } from '../theme';
 
-const MACHINE_STATE_LABEL: Record<string, string> = {
-  IDLE: 'ວ່າງ', RUNNING: 'ກຳລັງຊັກ', RESERVED: 'ຈອງ', ERROR: 'ຜິດພາດ', MAINTENANCE: 'ບຳລຸງ',
-};
 
 export function Dashboard() {
   const { token } = useAuth();
@@ -121,7 +118,6 @@ export function Dashboard() {
 }
 
 function MachineCell({ machine }: { machine: MachineCard }) {
-  const stateLabel = MACHINE_STATE_LABEL[machine.state] ?? machine.state;
   return (
     <div
       style={{
