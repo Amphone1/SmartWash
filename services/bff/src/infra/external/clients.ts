@@ -290,6 +290,35 @@ export class SettlementClient {
 }
 
 @Injectable()
+export class AddressesClient {
+  constructor(private readonly cfg: ServicesConfig) {}
+  list(userId: string): Promise<unknown> {
+    return callService(
+      this.cfg.deliveryUrl,
+      `/users/${userId}/addresses`,
+      this.cfg.internalToken,
+      { userId },
+    );
+  }
+  create(userId: string, body: unknown): Promise<unknown> {
+    return callService(
+      this.cfg.deliveryUrl,
+      `/users/${userId}/addresses`,
+      this.cfg.internalToken,
+      { method: 'POST', body, userId },
+    );
+  }
+  remove(userId: string, id: string): Promise<unknown> {
+    return callService(
+      this.cfg.deliveryUrl,
+      `/users/${userId}/addresses/${id}`,
+      this.cfg.internalToken,
+      { method: 'DELETE', userId },
+    );
+  }
+}
+
+@Injectable()
 export class RatingsClient {
   constructor(private readonly cfg: ServicesConfig) {}
   submit(idempotencyKey: string, userId: string, body: unknown): Promise<unknown> {

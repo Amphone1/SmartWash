@@ -9,6 +9,7 @@ export interface NotificationView {
   type: string;
   payload: Record<string, unknown> | null;
   status: string;
+  readAt: string | null;
   createdAt: string;
 }
 
@@ -26,7 +27,7 @@ export class PgNotificationRepository {
 
   async listForUser(userId: string, limit: number): Promise<NotificationView[]> {
     const { rows } = await this.db.getPool().query(
-      `SELECT id, user_id, channel, type, payload, status, created_at
+      `SELECT id, user_id, channel, type, payload, status, read_at, created_at
          FROM notifications WHERE user_id = $1
         ORDER BY created_at DESC LIMIT $2`,
       [userId, Math.min(limit, 100)],
@@ -38,7 +39,18 @@ export class PgNotificationRepository {
       type: r.type,
       payload: r.payload,
       status: r.status,
+      readAt: r.read_at ? r.read_at.toISOString() : null,
       createdAt: r.created_at.toISOString(),
     }));
+  }
+
+  /** Mark every unread notification read; returns how many were flipped. */
+  async markAllRead(userId: string): Promise<number> {
+    const res = await this.db.getPool().query(
+      `UPDATE notifications SET read_at = now()
+        WHERE user_id = $1 AND read_at IS NULL`,
+      [userId],
+    );
+    return res.rowCount ?? 0;
   }
 }

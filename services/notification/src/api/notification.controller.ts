@@ -3,8 +3,10 @@ import {
   Controller,
   Get,
   Headers,
+  HttpCode,
   Param,
   ParseUUIDPipe,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -32,5 +34,18 @@ export class NotificationController {
       throw new ForbiddenError('can only view your own notifications');
     }
     return this.repo.listForUser(userId, limit ? Number.parseInt(limit, 10) : 20);
+  }
+
+  /** Mark all of the caller's own notifications read (naturally idempotent). */
+  @Post('users/:userId/read-all')
+  @HttpCode(200)
+  async markAllRead(
+    @Param('userId', new ParseUUIDPipe()) userId: string,
+    @Headers(USER_ID_HEADER) callerId: string | undefined,
+  ): Promise<{ updated: number }> {
+    if (!callerId || callerId !== userId) {
+      throw new ForbiddenError('can only update your own notifications');
+    }
+    return { updated: await this.repo.markAllRead(userId) };
   }
 }

@@ -11,7 +11,7 @@ import {
 } from '@smartwash/nestkit';
 
 export interface CallOptions {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'DELETE';
   body?: unknown;
   idempotencyKey?: string;
   /** Forwarded as X-User-Id so downstream money services can re-check RBAC. */

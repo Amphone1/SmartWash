@@ -65,6 +65,16 @@ export interface WalletBalance {
   balanceKip: number;
 }
 
+export interface SavedAddress {
+  id: string;
+  label: string;
+  address: string;
+  lat: number;
+  lng: number;
+  isDefault: boolean;
+  createdAt: string;
+}
+
 export interface QrPayment {
   qrRef: string;
   expiresAt: string;
@@ -187,4 +197,14 @@ export const api = {
       comment?: string;
     },
   ) => postIdem<void>('/bff/ratings', token, payload),
+
+  listAddresses: (token: string) => get<SavedAddress[]>('/bff/addresses', token),
+
+  createAddress: (
+    token: string,
+    payload: { label: string; address: string; lat: number; lng: number; isDefault?: boolean },
+  ) => post<SavedAddress>('/bff/addresses', token, payload),
+
+  deleteAddress: (token: string, id: string) =>
+    request<void>('DELETE', `/bff/addresses/${id}`, token),
 };

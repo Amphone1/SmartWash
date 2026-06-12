@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -26,7 +26,16 @@ const OPTIONS: { key: DeliveryOption; label: string; eta: string; price: number 
 
 const TIME_SLOTS = ['08:00–10:00', '10:00–12:00', '13:00–15:00', '15:00–17:00', '17:00–19:00'];
 
-const SAVED_ADDRESSES = [
+interface AddressItem {
+  id: string;
+  label: string;
+  address: string;
+  lat: number;
+  lng: number;
+}
+
+// Shown until the user saves real addresses (GET /bff/addresses).
+const DEFAULT_ADDRESSES: AddressItem[] = [
   { id: 'a1', label: 'ບ້ານ', address: '18 ຖ. ສາຍລົມ, ວຽງຈັນ', lat: 17.975, lng: 102.633 },
   { id: 'a2', label: 'ຫ້ອງການ', address: '5 ຖ. ລ້ານຊ້າງ, ວຽງຈັນ', lat: 17.968, lng: 102.612 },
 ];
@@ -37,11 +46,27 @@ export default function RequestDeliveryScreen() {
   const { orderId } = useLocalSearchParams<{ orderId?: string }>();
 
   const [option, setOption] = useState<DeliveryOption>('standard');
-  const [addressId, setAddressId] = useState(SAVED_ADDRESSES[0].id);
+  const [addresses, setAddresses] = useState<AddressItem[]>(DEFAULT_ADDRESSES);
+  const [addressId, setAddressId] = useState(DEFAULT_ADDRESSES[0].id);
   const [slot, setSlot] = useState(TIME_SLOTS[0]);
   const [loading, setLoading] = useState(false);
 
-  const selectedAddr = SAVED_ADDRESSES.find((a) => a.id === addressId) ?? SAVED_ADDRESSES[0];
+  useEffect(() => {
+    if (!token) return;
+    api
+      .listAddresses(token)
+      .then((saved) => {
+        if (saved.length > 0) {
+          setAddresses(saved);
+          setAddressId(saved.find((a) => a.isDefault)?.id ?? saved[0].id);
+        }
+      })
+      .catch(() => {
+        // keep the defaults when the address list is unavailable
+      });
+  }, [token]);
+
+  const selectedAddr = addresses.find((a) => a.id === addressId) ?? addresses[0];
 
   async function handleRequest() {
     if (!token || !orderId) {
@@ -100,7 +125,7 @@ export default function RequestDeliveryScreen() {
         {/* Address */}
         <Text style={styles.sectionLabel}>ທີ່ຢູ່ຈັດສົ່ງ</Text>
         <View style={styles.addrList}>
-          {SAVED_ADDRESSES.map((addr) => (
+          {addresses.map((addr) => (
             <Pressable
               key={addr.id}
               style={[styles.addrRow, addressId === addr.id && styles.addrRowSelected]}

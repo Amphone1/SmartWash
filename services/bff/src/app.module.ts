@@ -9,6 +9,7 @@ import {
 } from '@smartwash/nestkit';
 import { ServicesConfig } from './config/services.config';
 import {
+  AddressesClient,
   AuditClient,
   AuthClient,
   DeliveryClient,
@@ -34,6 +35,7 @@ import { TopupController } from './api/topup.controller';
 import { DriverController } from './api/driver.controller';
 import { DeliveryTrackController } from './api/delivery-track.controller';
 import { ReportingController } from './api/reporting.controller';
+import { AddressesController } from './api/addresses.controller';
 
 @Module({
   imports: [
@@ -50,6 +52,7 @@ import { ReportingController } from './api/reporting.controller';
     DriverController,
     DeliveryTrackController,
     ReportingController,
+    AddressesController,
   ],
   providers: [
     ServicesConfig,
@@ -68,6 +71,7 @@ import { ReportingController } from './api/reporting.controller';
     CatalogRepository,
     ReportingRepository,
     RatingsClient,
+    AddressesClient,
     BffAuthGuard,
     PermissionsGuard,
     RateLimitGuard,

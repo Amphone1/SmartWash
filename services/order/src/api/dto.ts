@@ -2,12 +2,15 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsIn,
+  IsInt,
   IsLatitude,
   IsLongitude,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
+  Max,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -72,6 +75,25 @@ class PlaceDto {
 
   @IsLongitude()
   lng!: number;
+}
+
+/** Customer rating for a completed order (1–5 stars + tag chips). */
+export class SubmitRatingDto {
+  @IsUUID()
+  orderId!: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating!: number;
+
+  @IsArray()
+  @IsString({ each: true })
+  tags!: string[];
+
+  @IsOptional()
+  @IsString()
+  comment?: string;
 }
 
 /** Request a pickup/delivery (carries addresses for the delivery_order saga). */

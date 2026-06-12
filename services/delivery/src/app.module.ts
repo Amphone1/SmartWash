@@ -9,6 +9,7 @@ import {
   OutboxRelay,
   RbacModule,
 } from '@smartwash/nestkit';
+import { AddressesController } from './api/addresses.controller';
 import { DeliveryController } from './api/delivery.controller';
 import { DeliveryService } from './application/delivery.service';
 import {
@@ -16,6 +17,7 @@ import {
   DISTANCE_PROVIDER,
   DRIVER_REPOSITORY,
 } from './domain/ports';
+import { PgAddressRepository } from './infra/db/pg-address.repository';
 import { PgDeliveryRepository } from './infra/db/pg-delivery.repository';
 import { PgDriverRepository } from './infra/db/pg-driver.repository';
 import { GoogleMapsClient } from './infra/external/maps.client';
@@ -28,9 +30,10 @@ import { GoogleMapsClient } from './infra/external/maps.client';
     MetricsModule,
     HealthModule.forRoot([Database, NatsEventBus]),
   ],
-  controllers: [DeliveryController],
+  controllers: [DeliveryController, AddressesController],
   providers: [
     DeliveryService,
+    PgAddressRepository,
     OutboxRelay, // publishes delivery.* events (OUTBOX_AGGREGATE_TYPES=delivery)
     { provide: DELIVERY_REPOSITORY, useClass: PgDeliveryRepository },
     { provide: DRIVER_REPOSITORY, useClass: PgDriverRepository },

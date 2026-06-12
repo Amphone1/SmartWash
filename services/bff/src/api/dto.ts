@@ -1,15 +1,19 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsIn,
   IsISO8601,
   IsInt,
   IsLatitude,
   IsLongitude,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
+  Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -144,6 +148,7 @@ export class SubmitRatingBffDto {
 
   @IsInt()
   @Min(1)
+  @Max(5)
   rating!: number;
 
   @IsArray()
@@ -153,6 +158,29 @@ export class SubmitRatingBffDto {
   @IsOptional()
   @IsString()
   comment?: string;
+}
+
+/** Saved delivery address (self-scoped; delivery service re-checks). */
+export class CreateAddressBffDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(40)
+  label!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  address!: string;
+
+  @IsLatitude()
+  lat!: number;
+
+  @IsLongitude()
+  lng!: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
 }
 
 export class RejectSlipBffDto {
