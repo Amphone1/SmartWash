@@ -61,8 +61,13 @@ export class PgAddressRepository {
 
   async create(userId: string, data: CreateAddressData): Promise<AddressView> {
     return this.db.withTransaction(async (client) => {
+      // Serialise per-user creates so the cap can't be raced past.
+      await client.query(
+        `SELECT pg_advisory_xact_lock(hashtextextended('user_addresses:' || $1, 0))`,
+        [userId],
+      );
       const { rows: countRows } = await client.query<{ n: string }>(
-        `SELECT count(*) AS n FROM user_addresses WHERE user_id = $1 FOR UPDATE`,
+        `SELECT count(*) AS n FROM user_addresses WHERE user_id = $1`,
         [userId],
       );
       if (Number(countRows[0].n) >= MAX_ADDRESSES_PER_USER) {
