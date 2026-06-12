@@ -53,3 +53,6 @@ services/**/src/**/*.map
 
 # service-bundle emit step (tools/build-service.mjs)
 build-out/
+
+# Expo local state
+.expo/
