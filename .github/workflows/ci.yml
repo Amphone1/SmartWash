@@ -30,6 +30,9 @@ jobs:
       - name: Migrate (apply schema)
         run: npx nx run db:migrate
         env: { DATABASE_URL: postgresql://smartwash:change_me@localhost:5432/smartwash }
+      - name: Verify ledger DB invariants (A1 double-entry)
+        run: psql -v ON_ERROR_STOP=1 -f infra/db/init/tests/07_double_entry_ledger.verify.sql "$DATABASE_URL"
+        env: { DATABASE_URL: postgresql://smartwash:change_me@localhost:5432/smartwash }
       - name: Unit + integration tests
         run: npx nx run-many -t test
         env:
@@ -89,6 +92,8 @@ jobs:
           - settlement
           - reconciliation
           - saga
+          - notification
+          - audit
           - device-sim
           - ocr
           - risk
@@ -128,7 +133,8 @@ jobs:
       - name: Roll out services
         run: |
           for svc in auth rbac order queue bff ledger wallet payment fraud \
-                     machine delivery gps settlement reconciliation saga; do
+                     machine delivery gps settlement reconciliation saga \
+                     notification audit; do
             kubectl -n smartwash set image deploy/$svc \
               $svc=ghcr.io/${{ github.repository }}/$svc:${{ github.sha }} || true
           done
