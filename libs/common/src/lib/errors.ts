@@ -98,6 +98,17 @@ export class CurrencyMismatchError extends DomainError {
   }
 }
 
+/**
+ * A ledger transaction's debits and credits do not balance (Σ DR ≠ Σ CR), or it
+ * has fewer than two postings. Internal guard — should never reach a client; the
+ * DB deferred constraint trigger is the final backstop.
+ */
+export class UnbalancedTransactionError extends DomainError {
+  constructor(message = 'unbalanced ledger transaction', details?: unknown) {
+    super('unbalanced_transaction', message, 500, details);
+  }
+}
+
 export function isDomainError(err: unknown): err is DomainError {
   return err instanceof DomainError;
 }
