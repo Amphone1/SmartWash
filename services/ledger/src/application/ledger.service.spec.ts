@@ -23,13 +23,13 @@ class FakeRepo implements LedgerRepository {
   async postAtomic(input: PostInput): Promise<PostResult> {
     const existing = this.byKey.get(input.idempotencyKey);
     if (existing) {
-      if (existing.type !== input.type || BigInt(existing.amount) !== input.amount) {
+      if (existing.type !== input.type || existing.amount !== input.amount) {
         throw new IdempotencyConflictError();
       }
       return { entry: existing, replayed: true };
     }
     const prev = this.entries.length
-      ? BigInt(this.entries[this.entries.length - 1].balanceAfter)
+      ? this.entries[this.entries.length - 1].balanceAfter
       : 0n;
     const balanceAfter = prev + input.amount;
     if (balanceAfter < 0n) throw new InsufficientFundsError();
@@ -37,8 +37,8 @@ class FakeRepo implements LedgerRepository {
       id: this.entries.length + 1,
       userId: input.userId,
       type: input.type,
-      amount: Number(input.amount),
-      balanceAfter: Number(balanceAfter),
+      amount: input.amount,
+      balanceAfter,
       refType: input.refType,
       refId: input.refId,
       createdAt: new Date().toISOString(),
@@ -51,18 +51,18 @@ class FakeRepo implements LedgerRepository {
   async postRefund(input: RefundInput): Promise<RefundResult> {
     const existing = this.byKey.get(input.idempotencyKey);
     if (existing) {
-      if (BigInt(existing.amount) !== input.amount) throw new IdempotencyConflictError();
+      if (existing.amount !== input.amount) throw new IdempotencyConflictError();
       return { entry: existing, refundId: 'r-replay', replayed: true };
     }
     const prev = this.entries.length
-      ? BigInt(this.entries[this.entries.length - 1].balanceAfter)
+      ? this.entries[this.entries.length - 1].balanceAfter
       : 0n;
     const entry: LedgerEntryView = {
       id: this.entries.length + 1,
       userId: input.userId,
       type: 'REFUND_REVERSAL',
-      amount: Number(input.amount),
-      balanceAfter: Number(prev + input.amount),
+      amount: input.amount,
+      balanceAfter: prev + input.amount,
       refType: 'refund',
       refId: input.orderId,
       createdAt: new Date().toISOString(),
@@ -93,8 +93,8 @@ describe('LedgerService.post', () => {
     const { service } = svc();
     const a = await service.post({ ...base, type: 'TOPUP', amount: 20000n, idempotencyKey: 'k1' });
     const b = await service.post({ ...base, type: 'TOPUP', amount: 5000n, idempotencyKey: 'k2' });
-    expect(a.entry.balanceAfter).toBe(20000);
-    expect(b.entry.balanceAfter).toBe(25000);
+    expect(a.entry.balanceAfter).toBe(20000n);
+    expect(b.entry.balanceAfter).toBe(25000n);
     expect(a.replayed).toBe(false);
   });
 
@@ -151,7 +151,7 @@ describe('LedgerService.post', () => {
       refType: 'order',
       idempotencyKey: 'k2',
     });
-    expect(d.entry.balanceAfter).toBe(15000);
+    expect(d.entry.balanceAfter).toBe(15000n);
   });
 });
 
@@ -177,7 +177,7 @@ describe('LedgerService.refund', () => {
       idempotencyKey: 'wash-refund:o1',
     });
     expect(r.entry.type).toBe('REFUND_REVERSAL');
-    expect(r.entry.balanceAfter).toBe(25000);
+    expect(r.entry.balanceAfter).toBe(25000n);
     expect(r.refundId).toBeTruthy();
   });
 

@@ -36,6 +36,7 @@ import { DriverController } from './api/driver.controller';
 import { DeliveryTrackController } from './api/delivery-track.controller';
 import { ReportingController } from './api/reporting.controller';
 import { AddressesController } from './api/addresses.controller';
+import { StaffController } from './api/staff.controller';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { AddressesController } from './api/addresses.controller';
     DeliveryTrackController,
     ReportingController,
     AddressesController,
+    StaffController,
   ],
   providers: [
     ServicesConfig,

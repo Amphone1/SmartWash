@@ -13,6 +13,10 @@ import { EvaluateDto } from './dto';
 export class FraudController {
   @Post('evaluate')
   evaluate(@Body() body: EvaluateDto): FraudDecision {
-    return decide(body);
+    return decide({
+      ...body,
+      amountExpected: BigInt(body.amountExpected),
+      ocrAmount: BigInt(body.ocrAmount),
+    });
   }
 }

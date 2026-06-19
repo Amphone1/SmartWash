@@ -46,6 +46,11 @@ class FakeRepo implements OrderRepository {
   async findById(id: string): Promise<OrderRecord | null> {
     return this.orders.get(id) ?? null;
   }
+  async listForUser(userId: string): Promise<OrderRecord[]> {
+    return [...this.orders.values()]
+      .filter((o) => o.userId === userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
   async transition(
     id: string,
     from: OrderState,
@@ -197,6 +202,27 @@ describe('OrdersService.releaseReservation', () => {
     await expect(svc.releaseReservation(randomUUID())).rejects.toMatchObject({
       status: 404,
     });
+  });
+});
+
+describe('OrdersService.listForUser', () => {
+  it('returns only the caller\'s own orders', async () => {
+    const { svc } = makeService();
+    await svc.createOrder(randomUUID(), input);
+    // Different user + different machine (so the reservation lock doesn't clash).
+    await svc.createOrder(randomUUID(), {
+      ...input,
+      userId: OTHER_BRANCH,
+      machineId: randomUUID(),
+    });
+    const mine = await svc.listForUser(USER);
+    expect(mine).toHaveLength(1);
+    expect(mine[0].userId).toBe(USER);
+  });
+
+  it('returns an empty list for a user with no orders', async () => {
+    const { svc } = makeService();
+    await expect(svc.listForUser(USER)).resolves.toEqual([]);
   });
 });
 

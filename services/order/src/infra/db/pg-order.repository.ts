@@ -98,6 +98,17 @@ export class PgOrderRepository implements OrderRepository {
     return rows[0] ? toRecord(rows[0]) : null;
   }
 
+  async listForUser(userId: string): Promise<OrderRecord[]> {
+    const { rows } = await this.db
+      .getPool()
+      .query<Row>(
+        `SELECT * FROM orders WHERE user_id = $1
+          ORDER BY created_at DESC LIMIT 100`,
+        [userId],
+      );
+    return rows.map(toRecord);
+  }
+
   async transition(
     id: string,
     from: OrderState,

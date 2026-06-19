@@ -1,0 +1,61 @@
+name: smartwash_app
+description: SmartWash Super App — Customer, Driver and Staff modes in one application.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.3
+
+  # HTTP client
+  dio: ^5.7.0
+
+  # Secure token storage (replaces expo-secure-store)
+  flutter_secure_storage: ^9.2.2
+
+  # QR code scanner (replaces expo-camera barcode scanning)
+  mobile_scanner: ^5.2.3
+
+  # GPS location (replaces expo-location)
+  geolocator: ^13.0.2
+  permission_handler: ^11.3.1
+
+  # Maps (replaces react-native-maps)
+  google_maps_flutter: ^2.9.0
+
+  # Image loading
+  cached_network_image: ^3.4.1
+
+  # Image picker (replaces expo-image-picker for slip upload)
+  image_picker: ^1.1.2
+
+  # Date/number formatting
+  intl: ^0.20.1
+
+  # UUID v4 generation (replaces crypto.randomUUID())
+  uuid: ^4.5.1
+
+  # Loading shimmer effect
+  shimmer: ^3.0.0
+
+  # JWT decode (no validation — server validates; we just read claims)
+  dart_jsonwebtoken: ^2.14.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

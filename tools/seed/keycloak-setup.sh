@@ -17,7 +17,8 @@ $KC create realms -s realm=smartwash -s enabled=true 2>/dev/null || true
 # tooling + one per UI (each app/portal logs in with its own client_id).
 # webOrigins="+" (CORS = the redirect origins) is DEV ONLY — pin real origins
 # in prod.
-for c in smartwash-api smartwash-customer-app smartwash-driver-app \
+# smartwash-app = the Flutter super app (Customer · Driver · Staff in one login).
+for c in smartwash-api smartwash-app smartwash-customer-app smartwash-driver-app \
          smartwash-owner-portal smartwash-admin-portal; do
   $KC create clients -r smartwash \
     -s "clientId=$c" \

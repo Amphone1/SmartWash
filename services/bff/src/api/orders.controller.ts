@@ -10,7 +10,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ValidationError } from '@smartwash/common';
+import { NotFoundError, ValidationError } from '@smartwash/common';
 import { RateLimit, RateLimitGuard } from '@smartwash/nestkit';
 import { BffAuthGuard, type AuthedRequest } from './auth.guard';
 import { PermissionsGuard, RequirePermission } from './permissions.guard';
@@ -45,8 +45,18 @@ export class OrdersController {
 
   @Get(':id')
   @RequirePermission('order.view.own')
-  get(@Param('id', new ParseUUIDPipe()) id: string): Promise<unknown> {
-    return this.orders.get(id);
+  async get(
+    @Req() req: AuthedRequest,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<unknown> {
+    // order.view.own proves the caller is a customer — NOT that this order is
+    // theirs. Enforce object-level ownership at the public boundary (the
+    // principal lives here). 404, not 403, so a non-owner can't enumerate ids.
+    const order = (await this.orders.get(id)) as { userId?: string };
+    if (order?.userId !== req.principal!.userId) {
+      throw new NotFoundError('order not found');
+    }
+    return order;
   }
 
   @Post(':id/start')

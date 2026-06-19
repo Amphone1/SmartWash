@@ -19,8 +19,8 @@ export interface LedgerEntryView {
   id: number;
   userId: string;
   type: LedgerType;
-  amount: number;
-  balanceAfter: number;
+  amount: bigint;
+  balanceAfter: bigint;
   refType: string | null;
   refId: string | null;
   createdAt: string;

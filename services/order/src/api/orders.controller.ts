@@ -17,7 +17,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ValidationError } from '@smartwash/common';
-import { InternalTokenGuard } from '@smartwash/nestkit';
+import { InternalTokenGuard, USER_ID_HEADER } from '@smartwash/nestkit';
 import { OrdersService, type OrderView } from '../application/orders.service';
 import { CreateOrderDto, RequestDeliveryDto, TransitionOrderDto } from './dto';
 
@@ -33,6 +33,15 @@ export class OrdersController {
     @Body() body: CreateOrderDto,
   ): Promise<OrderView> {
     return this.orders.createOrder(requireKey(idempotencyKey), body);
+  }
+
+  /** The authenticated user's own orders (BFF forwards the principal). */
+  @Get()
+  list(
+    @Headers(USER_ID_HEADER) userId: string | undefined,
+  ): Promise<OrderView[]> {
+    if (!userId) throw new ValidationError(`${USER_ID_HEADER} header is required`);
+    return this.orders.listForUser(userId);
   }
 
   @Get(':id')

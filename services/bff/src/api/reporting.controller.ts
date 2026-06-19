@@ -10,13 +10,12 @@ import {
   Headers,
   HttpCode,
   Param,
-  ParseUUIDPipe,
   Post,
   Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ValidationError } from '@smartwash/common';
+import { ForbiddenError, ValidationError } from '@smartwash/common';
 import { BffAuthGuard, type AuthedRequest } from './auth.guard';
 import { PermissionsGuard, RequirePermission } from './permissions.guard';
 import { RejectSlipBffDto, RunReconBffDto, RunSettlementBffDto } from './dto';
@@ -29,6 +28,7 @@ import {
 import {
   AuditClient,
   PaymentClient,
+  RbacClient,
   ReconciliationClient,
   SettlementClient,
 } from '../infra/external/clients';
@@ -42,11 +42,29 @@ export class ReportingController {
     private readonly recon: ReconciliationClient,
     private readonly audit: AuditClient,
     private readonly payments: PaymentClient,
+    private readonly rbac: RbacClient,
   ) {}
 
   private branchFromJwt(req: AuthedRequest): string | undefined {
     const roles = req.principal?.roles ?? [];
     return roles.find((r) => r.branchId != null)?.branchId ?? undefined;
+  }
+
+  /**
+   * Coarse gateway gate for slip approval (rule #8). The branch a slip belongs
+   * to can't be derived from a qrRef at the gateway, so check that the caller
+   * holds slip.approve in their OWN branch (admins are global → null context).
+   * The payment service then re-checks against the SLIP's actual branch, which
+   * is the authoritative cross-branch guard.
+   */
+  private async assertCanReviewSlip(req: AuthedRequest): Promise<void> {
+    const branchId = this.branchFromJwt(req) ?? null;
+    const ok = await this.rbac.check(
+      req.principal!.userId,
+      'slip.approve',
+      branchId,
+    );
+    if (!ok) throw new ForbiddenError('missing permission slip.approve');
   }
 
   @Get('owner/summary')
@@ -95,29 +113,29 @@ export class ReportingController {
     return this.payments.listSlips(req.principal!.userId, bid, status);
   }
 
-  @Post('owner/slips/:slipId/approve')
+  @Post('owner/slips/:qrRef/approve')
   @HttpCode(200)
-  @RequirePermission('payment.approve')
-  approveSlip(
+  async approveSlip(
     @Req() req: AuthedRequest,
-    @Param('slipId', new ParseUUIDPipe()) slipId: string,
+    @Param('qrRef') qrRef: string,
     @Headers('idempotency-key') key: string | undefined,
   ): Promise<unknown> {
     if (!key) throw new ValidationError('Idempotency-Key header is required');
-    return this.payments.approveSlip(key, req.principal!.userId, slipId);
+    await this.assertCanReviewSlip(req);
+    return this.payments.approveSlip(key, req.principal!.userId, qrRef);
   }
 
-  @Post('owner/slips/:slipId/reject')
+  @Post('owner/slips/:qrRef/reject')
   @HttpCode(200)
-  @RequirePermission('payment.approve')
-  rejectSlip(
+  async rejectSlip(
     @Req() req: AuthedRequest,
-    @Param('slipId', new ParseUUIDPipe()) slipId: string,
+    @Param('qrRef') qrRef: string,
     @Headers('idempotency-key') key: string | undefined,
     @Body() body: RejectSlipBffDto,
   ): Promise<unknown> {
     if (!key) throw new ValidationError('Idempotency-Key header is required');
-    return this.payments.rejectSlip(key, req.principal!.userId, slipId, body.reason);
+    await this.assertCanReviewSlip(req);
+    return this.payments.rejectSlip(key, req.principal!.userId, qrRef, body.reason);
   }
 
   @Get('owner/stats/hourly')
@@ -152,19 +170,34 @@ export class ReportingController {
   }
 
   @Get('admin/summary')
-  @RequirePermission('report.view')
+  @RequirePermission('report.view.global')
   admin(): Promise<AdminSummary> {
     return this.reporting.adminSummary();
   }
 
+  /**
+   * Admin-global slip review queue — all branches, including topup slips (which
+   * have no branch). No branchId in the request → PermissionsGuard checks
+   * slip.approve at the global (null) context, which only an admin holds; a
+   * branch-scoped owner's slip.approve doesn't apply, so they can't list here.
+   */
+  @Get('admin/slips')
+  @RequirePermission('slip.approve')
+  adminSlips(
+    @Req() req: AuthedRequest,
+    @Query('status') status?: string,
+  ): Promise<unknown> {
+    return this.payments.listSlipsAll(req.principal!.userId, status);
+  }
+
   @Get('admin/reconciliation')
-  @RequirePermission('report.view')
+  @RequirePermission('report.view.global')
   reconRuns(@Query('limit') limit?: string): Promise<ReconRun[]> {
     return this.reporting.reconRuns(limit ? Number.parseInt(limit, 10) : 20);
   }
 
   @Get('admin/audit')
-  @RequirePermission('report.view')
+  @RequirePermission('report.view.global')
   auditTrail(
     @Req() req: AuthedRequest,
     @Query('entityId') entityId?: string,
@@ -179,7 +212,7 @@ export class ReportingController {
 
   @Post('admin/reconciliation/run')
   @HttpCode(200)
-  @RequirePermission('report.view')
+  @RequirePermission('recon.run')
   runRecon(
     @Req() req: AuthedRequest,
     @Body() body: RunReconBffDto,

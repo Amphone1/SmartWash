@@ -4,8 +4,8 @@ function clean(): FraudInput {
   return {
     duplicate: false,
     accountMatch: true,
-    amountExpected: 20000,
-    ocrAmount: 20000,
+    amountExpected: 20000n,
+    ocrAmount: 20000n,
     ocrConfidence: 0.95,
     riskScore: 0,
     riskBand: 'low',
@@ -32,7 +32,7 @@ describe('fraud decide', () => {
   });
 
   it('rejects any amount mismatch (exact match required)', () => {
-    expect(decide({ ...clean(), ocrAmount: 19999 })).toEqual({
+    expect(decide({ ...clean(), ocrAmount: 19999n })).toEqual({
       state: 'REJECT',
       reason: 'amount_mismatch',
     });
@@ -59,7 +59,7 @@ describe('fraud decide', () => {
     const d = decide({
       ...clean(),
       accountMatch: false,
-      ocrAmount: 1,
+      ocrAmount: 1n,
       riskBand: 'high',
     });
     expect(d.reason).toBe('wrong_account');

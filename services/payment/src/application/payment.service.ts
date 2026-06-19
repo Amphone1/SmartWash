@@ -14,19 +14,20 @@ import {
   type OcrFields,
   type PayReqType,
   type PaymentRepository,
+  type ReviewItem,
   type SlipStatus,
 } from '../domain/ports';
 
 export interface CreatePaymentInput {
   type: PayReqType;
-  amount: number; // kip
+  amount: bigint; // kip
   orderId?: string;
 }
 
 export interface CreatePaymentResult {
   qrRef: string;
   qrPayload: string;
-  amount: number;
+  amount: bigint;
   expiresAt: string;
 }
 
@@ -109,6 +110,22 @@ export class PaymentService {
     return status as SlipStatus;
   }
 
+  /** Staff/owner manual-review queue (payments parked AWAITING_APPROVAL). */
+  listPendingReview(branchId: string | null): Promise<ReviewItem[]> {
+    return this.repo.listPendingReview(branchId);
+  }
+
+  /**
+   * The branch a slip's payment belongs to (its order's branch), used to scope
+   * who may approve it. NULL = topup (no branch → global/admin only). Throws if
+   * the qrRef is unknown.
+   */
+  async reviewBranch(qrRef: string): Promise<string | null> {
+    const r = await this.repo.reviewBranch(qrRef);
+    if (!r) throw new NotFoundError('payment request not found');
+    return r.branchId;
+  }
+
   // ── internal (saga) ────────────────────────────────────────────────
   recordOcr(qrRef: string, ocr: OcrFields): Promise<void> {
     return this.repo.setOcr(qrRef, ocr);
@@ -139,7 +156,7 @@ export class PaymentService {
   }
 
   /** Mock EMVCo-ish QR payload (real bank QR integration is out of scope). */
-  private buildQrPayload(qrRef: string, amount: number): string {
+  private buildQrPayload(qrRef: string, amount: bigint): string {
     return `000201${qrRef}5408${amount}5802LA6304MOCK`;
   }
 }

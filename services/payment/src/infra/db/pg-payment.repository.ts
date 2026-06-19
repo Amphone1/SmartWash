@@ -17,6 +17,7 @@ import type {
   OcrFields,
   PaymentRepository,
   PaymentRequest,
+  ReviewItem,
   SlipStatus,
 } from '../../domain/ports';
 
@@ -39,7 +40,7 @@ function toReq(r: ReqRow): PaymentRequest {
     orderId: r.order_id,
     type: r.type as PaymentRequest['type'],
     qrRef: r.qr_ref,
-    amountExpected: Number(r.amount_expected),
+    amountExpected: BigInt(r.amount_expected),
     state: r.state as PayReqState,
     expiresAt: r.expires_at.toISOString(),
     createdAt: r.created_at.toISOString(),
@@ -147,7 +148,7 @@ export class PgPaymentRepository implements PaymentRepository {
         WHERE s.payment_request_id = pr.id AND pr.qr_ref = $1`,
       [
         qrRef,
-        ocr.amount,
+        ocr.amount.toString(),
         ocr.ref,
         ocr.account,
         ocr.confidence,
@@ -226,9 +227,62 @@ export class PgPaymentRepository implements PaymentRepository {
     return {
       qrRef: r.qr_ref,
       state: r.state,
-      ocrAmount: r.ocr_amount !== null ? Number(r.ocr_amount) : null,
+      ocrAmount: r.ocr_amount !== null ? BigInt(r.ocr_amount) : null,
       ocrConfidence: r.ocr_confidence !== null ? Number(r.ocr_confidence) : null,
       fraudState: r.fraud_state ?? null,
     };
+  }
+
+  async listPendingReview(branchId: string | null): Promise<ReviewItem[]> {
+    // The manual-review queue: payments parked AWAITING_APPROVAL. A topup has no
+    // order, so o.branch_id is NULL and the row is only visible to a global
+    // (admin) caller (branchId param null); a branch-scoped caller passes their
+    // branch and sees only that branch's order-payment slips.
+    const { rows } = await this.db.getPool().query(
+      `SELECT pr.qr_ref, pr.type, pr.amount_expected, pr.user_id, pr.created_at,
+              u.name AS user_name, o.branch_id,
+              s.image_object_key, s.ocr_amount, s.ocr_confidence, s.fraud_state
+         FROM payment_requests pr
+         JOIN users u ON u.id = pr.user_id
+         LEFT JOIN orders o ON o.id = pr.order_id
+         LEFT JOIN LATERAL (
+           SELECT image_object_key, ocr_amount, ocr_confidence, fraud_state
+             FROM slips WHERE payment_request_id = pr.id
+            ORDER BY created_at DESC LIMIT 1
+         ) s ON true
+        WHERE pr.state = 'AWAITING_APPROVAL'
+          AND ($1::uuid IS NULL OR o.branch_id = $1)
+        ORDER BY pr.created_at ASC
+        LIMIT 200`,
+      [branchId],
+    );
+    return rows.map((r) => ({
+      qrRef: r.qr_ref,
+      type: r.type,
+      amountExpected: BigInt(r.amount_expected),
+      userId: r.user_id,
+      userName: r.user_name,
+      branchId: r.branch_id ?? null,
+      ocrAmount: r.ocr_amount !== null ? BigInt(r.ocr_amount) : null,
+      ocrConfidence: r.ocr_confidence !== null ? Number(r.ocr_confidence) : null,
+      fraudState: r.fraud_state ?? null,
+      imageObjectKey: r.image_object_key ?? null,
+      createdAt:
+        r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+    }));
+  }
+
+  async reviewBranch(
+    qrRef: string,
+  ): Promise<{ branchId: string | null } | null> {
+    const { rows } = await this.db.getPool().query<{ branch_id: string | null }>(
+      `SELECT o.branch_id
+         FROM payment_requests pr
+         LEFT JOIN orders o ON o.id = pr.order_id
+        WHERE pr.qr_ref = $1`,
+      [qrRef],
+    );
+    if (rows.length === 0) return null;
+    return { branchId: rows[0].branch_id ?? null };
   }
 }
