@@ -58,6 +58,9 @@ export class LedgerController {
       refType: body.refType,
       refId: body.refId,
       idempotencyKey: key,
+      branchId: body.branchId,
+      vatBps: body.vatBps,
+      channel: body.channel,
     });
     res.status(replayed ? 200 : 201);
     return toJson(entry);
@@ -78,6 +81,8 @@ export class LedgerController {
       type: body.type,
       reason: body.reason,
       idempotencyKey: key,
+      branchId: body.branchId,
+      vatBps: body.vatBps,
     });
     res.status(replayed ? 200 : 201);
     return { ...toJson(entry), refundId };

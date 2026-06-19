@@ -19,6 +19,21 @@ export class PostEntryDto {
 
   @IsUUID()
   refId!: string;
+
+  // A5 dual-write context (additive, optional). Used only to build the shadow
+  // mirror; no effect on the authoritative legacy write.
+  @IsOptional()
+  @IsUUID()
+  branchId?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  vatBps?: number;
+
+  @IsOptional()
+  @IsIn(['wash', 'delivery'])
+  channel?: 'wash' | 'delivery';
 }
 
 export class RefundDto {
@@ -38,4 +53,14 @@ export class RefundDto {
   @IsOptional()
   @IsString()
   reason?: string;
+
+  // A5 dual-write context (additive, optional).
+  @IsOptional()
+  @IsUUID()
+  branchId?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  vatBps?: number;
 }

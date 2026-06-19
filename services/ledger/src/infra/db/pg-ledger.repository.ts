@@ -14,6 +14,7 @@ import type {
   RefundInput,
   RefundResult,
 } from '../../domain/ports';
+import { DualWriteShim } from '../../application/dual-write.shim';
 
 interface Row {
   id: string;
@@ -41,7 +42,10 @@ function toEntry(r: Row): LedgerEntryView {
 
 @Injectable()
 export class PgLedgerRepository implements LedgerRepository {
-  constructor(private readonly db: Database) {}
+  constructor(
+    private readonly db: Database,
+    private readonly dualWrite: DualWriteShim,
+  ) {}
 
   async postAtomic(input: PostInput): Promise<PostResult> {
     return this.db.withTransaction(async (client) => {
@@ -105,6 +109,19 @@ export class PgLedgerRepository implements LedgerRepository {
           amount: Number(entry.amount),
           balanceAfter: Number(entry.balance_after),
         },
+      });
+
+      // A5: shadow double-entry mirror (flag-gated, SAVEPOINT-isolated, fail-open).
+      await this.dualWrite.mirror(client, {
+        userId: input.userId,
+        type: input.type,
+        refType: input.refType,
+        refId: input.refId,
+        amount: input.amount,
+        legacyBalanceAfter: balanceAfter,
+        branchId: input.branchId,
+        vatBps: input.vatBps,
+        channel: input.channel,
       });
 
       return { entry: toEntry(entry), replayed: false };
@@ -172,6 +189,18 @@ export class PgLedgerRepository implements LedgerRepository {
           amount: Number(entry.amount),
           balanceAfter: Number(entry.balance_after),
         },
+      });
+
+      // A5: shadow double-entry mirror (flag-gated, SAVEPOINT-isolated, fail-open).
+      await this.dualWrite.mirror(client, {
+        userId: input.userId,
+        type: 'REFUND_REVERSAL',
+        refType: 'refund',
+        refId: input.orderId,
+        amount: input.amount,
+        legacyBalanceAfter: balanceAfter,
+        branchId: input.branchId,
+        vatBps: input.vatBps,
       });
 
       return { entry: toEntry(entry), refundId: rf.rows[0].id, replayed: false };

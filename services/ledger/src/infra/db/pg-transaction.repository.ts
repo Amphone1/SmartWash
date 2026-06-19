@@ -54,7 +54,14 @@ export class PgTransactionRepository implements TransactionRepository {
   ) {}
 
   async post(intent: TransactionIntent): Promise<PostTransactionResult> {
-    return this.db.withTransaction(async (client) => {
+    return this.db.withTransaction((client) => this.postWithClient(client, intent));
+  }
+
+  async postWithClient(
+    client: PoolClient,
+    intent: TransactionIntent,
+  ): Promise<PostTransactionResult> {
+    {
       // 1) Replay: a known key returns the stored transaction unchanged.
       const dup = await client.query<{ id: string; type: string }>(
         `SELECT id, type FROM ledger_transactions WHERE idempotency_key = $1`,
@@ -168,7 +175,7 @@ export class PgTransactionRepository implements TransactionRepository {
       });
 
       return { txnId, type: intent.type, postings: out, replayed: false };
-    });
+    }
   }
 
   /** Load and return a stored transaction for a replayed key (no side effects). */

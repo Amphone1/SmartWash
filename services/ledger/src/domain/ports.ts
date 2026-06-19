@@ -15,6 +15,9 @@ export interface RefundInput {
   type: 'FULL' | 'PARTIAL';
   reason?: string;
   idempotencyKey: string;
+  // A5 dual-write context (additive, optional) — see PostInput.
+  branchId?: string;
+  vatBps?: number;
 }
 
 export interface RefundResult {
@@ -79,5 +82,11 @@ export interface TransactionRepository {
    * transaction. Idempotent on `intent.idempotencyKey` (replay-safe).
    */
   post(intent: TransactionIntent): Promise<PostTransactionResult>;
+  /**
+   * Same as `post` but on a CALLER-SUPPLIED client/transaction (A5 dual-write:
+   * the mirror shares the legacy write's transaction). Does not open or commit a
+   * transaction of its own.
+   */
+  postWithClient(client: PoolClient, intent: TransactionIntent): Promise<PostTransactionResult>;
 }
 export const TRANSACTION_REPOSITORY = Symbol('TRANSACTION_REPOSITORY');
