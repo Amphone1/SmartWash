@@ -14,4 +14,5 @@ export * from './auth/rbac.guard';
 export * from './security/rate-limit.guard';
 export * from './events/nats';
 export * from './events/outbox-relay';
+export * from './events/inbox';
 export * from './mqtt/mqtt';

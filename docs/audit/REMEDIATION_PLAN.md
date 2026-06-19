@@ -2,7 +2,7 @@
 
 > Remediation for the enterprise audit findings. **NO-GO LIFTED (2026-06-17)** — the
 > five money-model artifacts (`MONEY_MODEL_PROPOSED.md`) are approved. EPIC A is in
-> progress (A1, A2, A3, A4 applied; A5 code applied behind flags, default OFF, not
+> progress (A1, A2, A3, A4, A6 applied; A5 code applied behind flags, default OFF, not
 > prod-enabled). Money epics remain STOP-and-ask at every step.
 >
 > **Execution rules (per approval):** one domain at a time · tests first ·
@@ -50,7 +50,7 @@ reserved, no accounts. Every increment is one PR, tests-first, STOP-and-ask.
 | A3 | Pure posting-rules / transaction builder (9 ops, `Σ DR=Σ CR`, VAT floor+remainder) | ❌ | unit tests per op + rounding | ✅ applied |
 | A4 | `postTransaction()` repo (advisory-lock, dedup, outbox `posted.v2`) — unused | ❌ | integration tests (balanced/replay/concurrency/overdraft) | ✅ applied |
 | A5 | Dual-write shim + shadow reconcile, per-flow drift counters, flag `LEDGER_DUAL_WRITE` | ⚠️ writes twice (legacy authoritative) | same-DB-txn; staging zero-drift | ✅ applied (code; flags default OFF, not prod-enabled) |
-| A6 | Inbox + DLQ (`processed_events`, `*.dlq`, re-drive) | ❌ infra | dedup + poison tests | ⬜ |
+| A6 | Inbox + DLQ (`processed_events`, `*.dlq`, re-drive) | ❌ infra | dedup + poison tests | ✅ applied |
 | A7 | Wallet 4-balance projection (`posted.v2`), monotonic `last_txn_id`, L1 reconcile | ❌ reads legacy | projection==legacy; L1 green | ⬜ |
 | A8a | Cutover: topup reads | ⚠️ | **7d zero-drift + L1/L3 green (topup)** | ⬜ |
 | A8b | Cutover: wash reads (`EnsureFunds`/`available`) | ⚠️ | 7d zero-drift + green (wash) | ⬜ |
