@@ -77,6 +77,27 @@ export class IdempotencyConflictError extends DomainError {
   }
 }
 
+/** A posting referenced an account that does not resolve to a known/active account. */
+export class AccountNotFoundError extends DomainError {
+  constructor(message = 'account not found', details?: unknown) {
+    super('account_not_found', message, 404, details);
+  }
+}
+
+/** The resolved account exists but is not active (e.g. closed). */
+export class AccountInactiveError extends DomainError {
+  constructor(message = 'account is not active', details?: unknown) {
+    super('account_inactive', message, 409, details);
+  }
+}
+
+/** A money operation used an unsupported currency or mixed currencies. */
+export class CurrencyMismatchError extends DomainError {
+  constructor(message = 'currency mismatch', details?: unknown) {
+    super('currency_mismatch', message, 422, details);
+  }
+}
+
 export function isDomainError(err: unknown): err is DomainError {
   return err instanceof DomainError;
 }

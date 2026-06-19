@@ -11,7 +11,8 @@ import {
 } from '@smartwash/nestkit';
 import { LedgerController } from './api/ledger.controller';
 import { LedgerService } from './application/ledger.service';
-import { LEDGER_REPOSITORY } from './domain/ports';
+import { ACCOUNT_RESOLVER, LEDGER_REPOSITORY } from './domain/ports';
+import { PgAccountRepository } from './infra/db/pg-account.repository';
 import { PgLedgerRepository } from './infra/db/pg-ledger.repository';
 
 @Module({
@@ -27,6 +28,9 @@ import { PgLedgerRepository } from './infra/db/pg-ledger.repository';
     LedgerService,
     OutboxRelay, // publishes ledger.* events (OUTBOX_AGGREGATE_TYPES=ledger)
     { provide: LEDGER_REPOSITORY, useClass: PgLedgerRepository },
+    // A2: chart-of-accounts resolver. Registered now; wired into the posting
+    // path by A3/A4.
+    { provide: ACCOUNT_RESOLVER, useClass: PgAccountRepository },
   ],
 })
 export class AppModule {}

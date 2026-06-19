@@ -1,5 +1,6 @@
 # SmartWash — Financial Contract (normative)
 
+> **Version:** 1.1 (2026-06-19) — see Changelog at the end.
 > **Status: PROPOSED — design only, NO-GO active. No code is changed by this doc.**
 > This is the authoritative behavioral contract every service MUST honor for any
 > money movement. It binds: ledger, wallet, payment, saga, settlement,
@@ -130,8 +131,10 @@ Each operation is ONE `ledger_transactions` row + ≥2 `ledger_postings`. Format
 - Ledger endpoints (`/ledger/post`, `/ledger/refund`, `/ledger/adjust`) accept a
   transaction intent and return `{ txnId, postings[], replayed }`.
 - **Error model (canonical):** `ValidationError(400)`, `InsufficientFunds(409)`,
-  `IdempotencyConflict(409)`, `AccountNotFound(404)`, `CurrencyMismatch(422)`,
-  `UnbalancedTransaction(500, internal guard)`.
+  `IdempotencyConflict(409)`, `AccountNotFound(404)`, `AccountInactive(409)`,
+  `CurrencyMismatch(422)`, `UnbalancedTransaction(500, internal guard)`.
+  `AccountInactive(409)` = the resolved account exists but is not `active`
+  (e.g. closed); `resolveAccount()` raises it rather than silently reactivating.
 
 ## 8. Invariants (machine-checkable)
 | ID | Assertion | Enforced by |
@@ -165,3 +168,9 @@ Each operation is ONE `ledger_transactions` row + ≥2 `ledger_postings`. Format
 ## Approval
 This contract is binding only after the `MONEY_MODEL_PROPOSED.md` artifacts are
 approved (NO-GO lift). Until then it is the agreed target specification.
+
+## Changelog
+- **1.1 (2026-06-19, A2):** Add `AccountInactive(409)` to the §7 error model
+  (`resolveAccount()` rejects posting to a non-active account). No money-model,
+  chart-of-accounts, or reconciliation change.
+- **1.0 (2026-06-17):** Initial financial contract (NO-GO lift).

@@ -33,6 +33,9 @@ jobs:
       - name: Verify ledger DB invariants (A1 double-entry)
         run: psql -v ON_ERROR_STOP=1 -f infra/db/init/tests/07_double_entry_ledger.verify.sql "$DATABASE_URL"
         env: { DATABASE_URL: postgresql://smartwash:change_me@localhost:5432/smartwash }
+      - name: Verify accounts chart (A2)
+        run: psql -v ON_ERROR_STOP=1 -f infra/db/init/tests/09_accounts_chart.verify.sql "$DATABASE_URL"
+        env: { DATABASE_URL: postgresql://smartwash:change_me@localhost:5432/smartwash }
       - name: Unit + integration tests
         run: npx nx run-many -t test
         env:

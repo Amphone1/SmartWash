@@ -2,7 +2,7 @@
 
 > Remediation for the enterprise audit findings. **NO-GO LIFTED (2026-06-17)** — the
 > five money-model artifacts (`MONEY_MODEL_PROPOSED.md`) are approved. EPIC A is in
-> progress (A1 applied). Money epics remain STOP-and-ask at every step.
+> progress (A1, A2 applied). Money epics remain STOP-and-ask at every step.
 >
 > **Execution rules (per approval):** one domain at a time · tests first ·
 > migrations first · rollback required · update docs + ADRs · never bypass ledger,
@@ -45,7 +45,7 @@ reserved, no accounts. Every increment is one PR, tests-first, STOP-and-ask.
 | Inc | Scope | Live money path? | Gate to advance | Status |
 |---|---|---|---|---|
 | A1 | Additive schema (`accounts`, `ledger_transactions`, `ledger_postings`, `wallet_balances`) + balanced/append-only triggers — `07_double_entry_ledger.sql` (+ verify.sql) | ❌ | migration clean; DB verify green | ✅ applied |
-| A2 | Chart-of-accounts seed + `resolveAccount()`; vendor/franchise enum only | ❌ | all contract accounts resolvable; idempotent create | ⬜ |
+| A2 | Chart-of-accounts seed + `resolveAccount()`; vendor/franchise enum only | ❌ | all contract accounts resolvable; idempotent create | ✅ applied |
 | A3 | Pure posting-rules / transaction builder (9 ops, `Σ DR=Σ CR`, VAT floor+remainder) | ❌ | unit tests per op + rounding | ⬜ |
 | A4 | `postTransaction()` repo (advisory-lock, dedup, outbox `posted.v2`) — unused | ❌ | integration tests (balanced/replay/concurrency/overdraft) | ⬜ |
 | A5 | Dual-write shim + shadow reconcile, per-flow drift counters, flag `LEDGER_DUAL_WRITE` | ⚠️ writes twice (legacy authoritative) | same-DB-txn; staging zero-drift | ⬜ |

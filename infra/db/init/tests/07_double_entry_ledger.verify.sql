@@ -17,9 +17,11 @@ SET CONSTRAINTS ALL DEFERRED;
 -- Fixtures (rolled back).
 INSERT INTO users (id, phone, name)
   VALUES ('00000000-0000-0000-0000-0000000000aa', '+85620VERIFY01', 'verify-user');
+-- NOTE: branch is an entity (non-singleton) account, so owner_id is required
+-- (enforced by 09_accounts_chart.sql's trigger; a NULL here used to be accepted).
 INSERT INTO accounts (id, acct_type, owner_type, owner_id, sub) VALUES
   (900001, 'LIABILITY', 'user',   '00000000-0000-0000-0000-0000000000aa', 'available'),
-  (900002, 'ASSET',     'branch', NULL, 'clearing');
+  (900002, 'ASSET',     'branch', '00000000-0000-0000-0000-0000000000bb', 'clearing');
 
 -- 1) Balanced transaction is accepted.
 DO $$

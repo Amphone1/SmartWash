@@ -1,4 +1,6 @@
+import type { PoolClient } from 'pg';
 import type { LedgerEntryView, PostInput } from './ledger';
+import type { AccountRef, AcctType } from './accounts';
 
 export interface PostResult {
   entry: LedgerEntryView;
@@ -32,3 +34,20 @@ export interface LedgerRepository {
   ): Promise<LedgerEntryView[]>;
 }
 export const LEDGER_REPOSITORY = Symbol('LEDGER_REPOSITORY');
+
+/** Result of resolving (get-or-create) a chart-of-accounts account (A2). */
+export interface ResolvedAccount {
+  id: bigint;
+  acctType: AcctType;
+  accountKey: string;
+}
+
+export interface AccountResolver {
+  /**
+   * Get-or-create the account for `ref` inside the caller's transaction and
+   * return its surrogate id + canonical key. Idempotent (find-or-create); MUST
+   * run on the caller's client so create is atomic with the posting it serves.
+   */
+  resolve(client: PoolClient, ref: AccountRef): Promise<ResolvedAccount>;
+}
+export const ACCOUNT_RESOLVER = Symbol('ACCOUNT_RESOLVER');
