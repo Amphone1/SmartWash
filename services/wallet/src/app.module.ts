@@ -9,6 +9,7 @@ import {
   RbacModule,
 } from '@smartwash/nestkit';
 import { WalletController } from './api/wallet.controller';
+import { WalletAdminController } from './api/wallet-admin.controller';
 import { WalletService } from './application/wallet.service';
 import { WALLET_REPOSITORY } from './domain/ports';
 import { PgWalletProjectionRepository } from './infra/db/pg-wallet-projection.repository';
@@ -25,7 +26,7 @@ import { WalletReconcileJob } from './infra/jobs/wallet-reconcile.job';
     MetricsModule,
     HealthModule.forRoot([Database, NatsEventBus]),
   ],
-  controllers: [WalletController],
+  controllers: [WalletController, WalletAdminController],
   providers: [
     WalletService,
     PgWalletProjectionRepository,
