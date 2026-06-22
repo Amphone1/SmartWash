@@ -30,3 +30,23 @@ export const walletReconcileUsers = new Gauge({
   help: 'Users checked in the last L1 reconcile run',
   registers: [registry],
 });
+
+/**
+ * A8a per-read shadow drift (v2.current − legacy.balance) at a wallet read site.
+ * Recorded only when a flow's WALLET_READ_V2_<FLOW> flag is in `shadow` and the
+ * drift is non-zero. flow = topup|wash|refund (A8a emits flow='topup' only).
+ */
+export const walletReadDriftTotal = new Counter({
+  name: 'wallet_read_drift_total',
+  help: 'Non-zero wallet shadow-read drift (v2 vs legacy) per flow',
+  labelNames: ['flow'] as const,
+  registers: [registry],
+});
+
+export const walletReadDriftKip = new Histogram({
+  name: 'wallet_read_drift_kip',
+  help: 'Magnitude of wallet shadow-read drift (absolute kip) per flow',
+  labelNames: ['flow'] as const,
+  buckets: [1, 10, 100, 1000, 10000, 100000, 1000000],
+  registers: [registry],
+});

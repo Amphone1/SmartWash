@@ -102,6 +102,50 @@ export class PgWalletProjectionRepository {
   }
 
   /**
+   * A8a per-user projected balance (money-safe). Reads the four-balance split
+   * for one user from `wallet_balances`; kip stays **bigint** throughout (each sub
+   * SELECTed `::text` and wrapped with `BigInt` — never `Number()`). `current` is
+   * the W1 sum `available + reserved + held + pending`.
+   *
+   * Not-yet-projected user (no row) → all-zero bigints. On a cold projection that
+   * is expected pre-seed drift; ops must `rebuildFromLedgerEntries` to seed before
+   * baking A8a (see A8_IMPLEMENTATION_PLAN §6). Read-only; serves nothing in A8a.
+   */
+  async getProjected(userId: string): Promise<{
+    available: bigint;
+    reserved: bigint;
+    held: bigint;
+    pending: bigint;
+    current: bigint;
+  }> {
+    const { rows } = await this.db.getPool().query<{
+      available: string;
+      reserved: string;
+      held: string;
+      pending: string;
+    }>(
+      `SELECT available::text, reserved::text, held::text, pending::text
+         FROM wallet_balances WHERE user_id = $1`,
+      [userId],
+    );
+    const r = rows[0];
+    if (!r) {
+      return { available: 0n, reserved: 0n, held: 0n, pending: 0n, current: 0n };
+    }
+    const available = BigInt(r.available);
+    const reserved = BigInt(r.reserved);
+    const held = BigInt(r.held);
+    const pending = BigInt(r.pending);
+    return {
+      available,
+      reserved,
+      held,
+      pending,
+      current: available + reserved + held + pending, // W1
+    };
+  }
+
+  /**
    * Rebuild tooling — run OFFLINE with the projector paused. Idempotent.
    *
    * (a) From legacy `ledger_entries` ONLY (transition default): reconstructs the
