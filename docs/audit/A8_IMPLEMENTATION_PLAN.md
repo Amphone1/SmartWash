@@ -10,6 +10,13 @@
 > JSON **number**, not a string (wire-contract §2 / §3 A8a); (#2) the A8b gate must cover the served
 > `available`, not just `current` (§3 A8b); (#3) EPIC C **L3 trial-balance is not built** → not a
 > mandatory A8 gate (§5 / §6); (#4) **seed the projection** via rebuild before baking (§6).
+>
+> **Implemented (2026-06-22, A8a Stage-1):** `getProjected()`, the shadow read + `wallet_read_drift_*`
+> metrics, and the `off|shadow|serve` flag resolver are shipped (serve still unimplemented → fail-safe
+> shadow). The **seed step (§6.1) is now invocable** via
+> `POST /internal/wallet/rebuild?mode=ledger_entries|postings&force=`
+> (`services/wallet/src/api/wallet-admin.controller.ts`, InternalTokenGuard; refuses while the projector
+> is enabled unless `force=true`). Stage-2 **serve** and the operational bake remain pending.
 
 ## 1. Cutover architecture (per read site)
 ```
@@ -30,8 +37,8 @@ caller ─▶ read site ─┬─ OFF ──────────────
 - **Stage 2 (serve)** flips only after that flow's gate is green; flip-back to legacy is instant.
 
 ## 2. New read primitive (shared by all flows)
-Today `PgWalletProjectionRepository` has only `applyV2` / `reconcileL1` / `rebuild*` — **no
-per-user balance getter**. A8 adds one, money-safe:
+`PgWalletProjectionRepository` previously had only `applyV2` / `reconcileL1` / `rebuild*` — no
+per-user balance getter. A8a **added** one (shipped), money-safe:
 ```
 getProjected(userId): { available, reserved, held, pending, current }   // all bigint kip
   // current = available + reserved + held + pending  (W1)
@@ -126,9 +133,11 @@ getProjected(userId): { available, reserved, held, pending, current }   // all b
 
 ## 6. Bake → promote → rollback sequence (per flow)
 1. **Seed the projection first (review finding #4):** on any DB with existing balances,
-   `wallet_balances` starts **cold** and would show permanent projection==legacy drift. Run
-   `rebuildFromLedgerEntries` (transition total; or `rebuildFromPostings` post-backfill) **before**
-   baking so `current` starts equal to legacy. Idempotent; run with the projector paused.
+   `wallet_balances` starts **cold** and would show permanent projection==legacy drift. Seed it
+   **before** baking via `POST /internal/wallet/rebuild?mode=ledger_entries` (transition total; or
+   `mode=postings` post-backfill) — the A8a admin endpoint (InternalTokenGuard) that calls
+   `rebuildFromLedgerEntries`/`rebuildFromPostings`. Idempotent; the endpoint **refuses while the
+   projector is enabled** (run offline) unless `force=true`, so seed BEFORE step 2.
 2. **Enable A7 projector** (`WALLET_PROJECTOR_V2_ENABLED`) + **L1 reconcile**
    (`WALLET_L1_RECONCILE_ENABLED=true`) so `wallet_balances` is live and reconciled.
 3. Set the flow flag to **`shadow`** → serve legacy, accumulate per-read + reconcile drift.

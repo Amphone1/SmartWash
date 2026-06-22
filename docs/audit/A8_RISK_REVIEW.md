@@ -38,7 +38,7 @@
 | Served-balance drift / page (F1/F2/F4/F6) | `WALLET_READ_V2_<FLOW>=off` → instant legacy revert (no data to recover) → triage reconcile/shadow output → fix → re-bake from `shadow`. |
 | Projector lag/outage (F2) | Flip affected flows to `off` (legacy reads fine); restart/scale the projector; reconcile confirms catch-up; resume `shadow`→`serve`. |
 | Wash mis-gate (F3) | Flip `WALLET_READ_V2_WASH=off`; DEDUCT guard meant no money moved incorrectly; investigate `available` drift. |
-| Projection corruption (F8/F9) | Flags off → legacy serves; `TRUNCATE wallet_balances` → rebuild (`ledger_entries` total / `ledger_postings` full) → reconcile GREEN → re-bake. |
+| Projection corruption (F8/F9) | Flags off → legacy serves; `TRUNCATE wallet_balances` → rebuild via `POST /internal/wallet/rebuild` (A8a; `ledger_entries` total or `postings` full; offline-guarded) → reconcile GREEN → re-bake. |
 | Full backout | All `WALLET_READ_V2_*` → off; revert the A8 PR (additive, no schema); legacy read path is byte-for-byte unchanged. |
 
 **Recovery primitives:** per-flow instant flag-off, legacy never stopped (authoritative writes
