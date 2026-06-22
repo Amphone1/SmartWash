@@ -31,7 +31,13 @@ export class WalletReconcileJob implements OnApplicationBootstrap, OnModuleDestr
     try {
       const drifts = await this.projection.reconcileL1();
       if (drifts.length > 0) {
-        this.logger.error(`L1 drift on ${drifts.length} user(s): ${JSON.stringify(drifts.slice(0, 5))}`);
+        const safe = drifts.slice(0, 5).map((d) => ({
+          userId: d.userId,
+          current: d.current.toString(),
+          posted: d.posted.toString(),
+          legacy: d.legacy.toString(),
+        }));
+        this.logger.error(`L1 drift on ${drifts.length} user(s): ${JSON.stringify(safe)}`);
       }
     } catch (err) {
       this.logger.warn(`L1 reconcile failed: ${String(err)}`);
