@@ -2,7 +2,7 @@
   "name": "@smartwash/driver-app",
   "version": "0.0.0",
   "private": true,
-  "description": "SmartWash driver app (Expo / React Native). Standalone — install separately.",
+  "description": "[LEGACY/reference-only] SmartWash driver app (Expo / React Native). Standalone — install separately. Primary mobile app is apps/smartwash-app (Flutter); see docs/MOBILE_CUTOVER.md.",
   "main": "expo-router/entry",
   "nx": {
     "includedScripts": []

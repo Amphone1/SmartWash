@@ -2,6 +2,10 @@
 
 One Flutter app for three roles: **Customer · Driver · Staff**.
 
+> **This is the canonical mobile app.** The legacy `apps/customer-app` and
+> `apps/driver-app` (React Native / Expo) are reference-only and retiring — add
+> new mobile work here. Cutover plan + parity checklist: `docs/MOBILE_CUTOVER.md`.
+
 ## Prerequisites
 
 - Flutter SDK 3.27+ / Dart 3.5+ ([install](https://docs.flutter.dev/get-started/install))

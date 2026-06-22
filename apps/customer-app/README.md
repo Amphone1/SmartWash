@@ -1,6 +1,12 @@
-# SmartWash Customer App (Expo / React Native)
+# SmartWash Customer App (Expo / React Native) — ⚠️ LEGACY / reference-only
 
-Minimal Phase 1 flow: **token → service selection → branch list → machine list**,
+> **This is NOT the primary mobile app.** The canonical mobile app is the Flutter
+> super app at **`apps/smartwash-app`** (Customer · Driver · Staff in one login).
+> This Expo app is kept as a **legacy / minimal reference** during a phased cutover
+> and receives **no new features**. See **`docs/MOBILE_CUTOVER.md`**. Do not build
+> new functionality here — add it to `apps/smartwash-app` instead.
+
+Minimal Phase 1 flow: **login → service selection → branch list → machine list**,
 talking to the BFF through the Traefik gateway.
 
 ## Standalone install
@@ -18,10 +24,10 @@ The API base URL comes from `app.json` → `expo.extra.apiBaseUrl`
 (default `http://localhost:8088/api`, the Traefik gateway). Point it at your
 gateway host when running on a device.
 
-## Auth (Phase 1)
-There's no embedded Keycloak login yet — paste a Keycloak-issued access token on
-the first screen. The token is sent as `Authorization: Bearer <token>` and the
-BFF resolves identity + RBAC. A full login flow lands in a later phase.
+## Auth
+The login screen signs in with phone + password via Keycloak (resource-owner
+password grant) and stores the access token in `expo-secure-store`. The token is
+sent as `Authorization: Bearer <token>` and the BFF resolves identity + RBAC.
 
 ## Typecheck
 ```bash

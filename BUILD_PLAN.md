@@ -33,7 +33,7 @@ Two state machines stay **separate** and sync via events:
 | Monorepo | Nx |
 | Business services | NestJS (TypeScript) |
 | OCR / Risk | Python · FastAPI (PaddleOCR) |
-| Mobile apps | React Native (Expo) |
+| Mobile app | Flutter super app (`apps/smartwash-app`) — primary; legacy React Native (Expo) apps retiring |
 | Web portals | React + Vite |
 | API Gateway | Traefik + NestJS BFF |
 | Auth / RBAC | Keycloak |
@@ -58,11 +58,13 @@ Two state machines stay **separate** and sync via events:
 ```
 smartwash/
 ├── apps/
-│   ├── customer-app/         # React Native (Expo)
-│   ├── driver-app/           # React Native (Expo)
+│   ├── smartwash-app/        # Flutter super app (Customer · Driver · Staff) — PRIMARY mobile
+│   ├── customer-app/         # React Native (Expo) — LEGACY / reference-only (retiring)
+│   ├── driver-app/           # React Native (Expo) — LEGACY / reference-only (retiring)
 │   ├── owner-portal/         # React + Vite
 │   ├── admin-portal/         # React + Vite
 │   └── bff/                  # NestJS backend-for-frontend (aggregates for apps)
+│   # Mobile cutover plan: docs/MOBILE_CUTOVER.md
 ├── services/
 │   ├── auth/                 # NestJS  (+ Keycloak adapter)
 │   ├── rbac/                 # NestJS  (policy lookup)

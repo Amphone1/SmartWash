@@ -53,6 +53,14 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Legacy app notice — see docs/MOBILE_CUTOVER.md */}
+          <View style={styles.legacyBanner}>
+            <Text style={styles.legacyBannerText}>
+              Legacy app — not the primary SmartWash app. The current app is the
+              Flutter super app. This Expo build is kept for reference only.
+            </Text>
+          </View>
+
           {/* Logo */}
           <View style={styles.logoContainer}>
             <View style={styles.logo}>
@@ -145,6 +153,19 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.pageBg },
   flex: { flex: 1 },
+  legacyBanner: {
+    width: '100%',
+    backgroundColor: COLORS.pendingBg,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  legacyBannerText: {
+    color: COLORS.pendingText,
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
