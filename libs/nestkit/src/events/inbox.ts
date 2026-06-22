@@ -108,12 +108,12 @@ export async function handleInboxDelivery(
   deps: InboxDeps,
   consumer: string,
   maxDeliver: number,
-  handler: (payload: Record<string, unknown>) => Promise<void>,
+  handler: (payload: Record<string, unknown>, client: PoolClient) => Promise<void>,
   msg: InboxMessage,
 ): Promise<InboxOutcome> {
   try {
     const processed = await deps.runInTx((client) =>
-      consumeOnce(client, consumer, msg.eventId, () => handler(msg.payload)),
+      consumeOnce(client, consumer, msg.eventId, () => handler(msg.payload, client)),
     );
     if (processed) inboxProcessedTotal.inc({ consumer });
     else inboxDuplicateTotal.inc({ consumer });
@@ -155,7 +155,8 @@ export interface ReliableConsumerOptions {
   durable: string;
   consumer: string; // inbox namespace (usually = durable)
   maxDeliver: number;
-  handler: (payload: Record<string, unknown>) => Promise<void>;
+  /** Runs on the inbox transaction's `client` so side effects commit atomically with dedup. */
+  handler: (payload: Record<string, unknown>, client: PoolClient) => Promise<void>;
 }
 
 /**
