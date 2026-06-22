@@ -228,10 +228,10 @@ class ApiClient {
       _dio.post<void>('/bff/driver/deliveries/$id/reject');
 
   Future<void> advanceTask(String id, String state) =>
-      _dio.post<void>('/bff/driver/deliveries/$id/state', data: {'state': state});
+      _dio.post<void>('/bff/driver/deliveries/$id/advance', data: {'to': state});
 
   Future<void> updateLocation(double lat, double lon) =>
-      _dio.post<void>('/bff/driver/location', data: {'lat': lat, 'lon': lon});
+      _dio.post<void>('/bff/driver/location', data: {'lat': lat, 'lng': lon});
 
   Future<EarningsData> getEarnings() async {
     final res = await _dio.get<Map<String, dynamic>>('/bff/driver/earnings');
