@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../design_system/sw_colors.dart';
 import '../../../design_system/sw_typography.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/role_provider.dart';
 
 class DriverProfileScreen extends ConsumerWidget {
   const DriverProfileScreen({super.key});
@@ -50,7 +51,10 @@ class DriverProfileScreen extends ConsumerWidget {
               leading: const Icon(Icons.swap_horiz, color: SwColors.textMuted),
               title: Text('ສ່ຽງໂໝດ', style: SwTypography.body),
               trailing: const Icon(Icons.chevron_right, color: SwColors.textHint),
-              onTap: () => context.push('/select-role'),
+              onTap: () {
+                ref.read(activeRoleProvider.notifier).deselect();
+                context.push('/select-role');
+              },
               contentPadding: EdgeInsets.zero,
             ),
 

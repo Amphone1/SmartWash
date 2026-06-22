@@ -3,7 +3,7 @@ import 'package:uuid/uuid.dart';
 import 'dart:io';
 import '../config/app_config.dart';
 import '../auth/auth_service.dart';
-import '../auth/token_store.dart';
+import 'models/address.dart';
 import 'models/branch.dart';
 import 'models/delivery.dart';
 import 'models/driver_task.dart';
@@ -171,6 +171,43 @@ class ApiClient {
 
   Future<void> markAllNotificationsRead() =>
       _dio.post<void>('/bff/notifications/read-all');
+
+  // ─── Saved addresses ──────────────────────────────────────────────────────
+
+  /// Lists the authenticated customer's saved delivery addresses
+  /// (default first). Self-scoped server-side.
+  Future<List<Address>> listAddresses() async {
+    final res = await _dio.get<List>('/bff/addresses');
+    return res.data!
+        .cast<Map<String, dynamic>>()
+        .map(Address.fromJson)
+        .toList();
+  }
+
+  /// Creates a saved address (max 10 per user, enforced by the backend).
+  /// There is no update endpoint — edits are delete + re-create.
+  Future<Address> createAddress({
+    required String label,
+    required String address,
+    required double lat,
+    required double lng,
+    bool isDefault = false,
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/bff/addresses',
+      data: {
+        'label': label,
+        'address': address,
+        'lat': lat,
+        'lng': lng,
+        'isDefault': isDefault,
+      },
+    );
+    return Address.fromJson(res.data!);
+  }
+
+  Future<void> deleteAddress(String id) =>
+      _dio.delete<void>('/bff/addresses/$id');
 
   // ─── Delivery ───────────────────────────────────────────────────────────────
 

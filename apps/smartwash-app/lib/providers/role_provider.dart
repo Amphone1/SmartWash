@@ -39,6 +39,9 @@ class ActiveRoleNotifier extends StateNotifier<AppRole?> {
     _store.writeLastRole(role.name);
   }
 
+  /// Drop the active role to force the picker WITHOUT clearing the session/token.
+  void deselect() => state = null;
+
   void clear() {
     state = null;
     _store.clear();

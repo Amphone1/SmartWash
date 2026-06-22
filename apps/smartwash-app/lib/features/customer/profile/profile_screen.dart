@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../design_system/sw_colors.dart';
 import '../../../design_system/sw_typography.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/role_provider.dart';
 
 class CustomerProfileScreen extends ConsumerWidget {
   const CustomerProfileScreen({super.key});
@@ -51,7 +52,10 @@ class CustomerProfileScreen extends ConsumerWidget {
               icon: Icons.swap_horiz,
               title: 'ສ່ຽງໂໝດ',
               subtitle: 'ສ່ຽງລະຫວ່າງ Customer / Driver / Staff',
-              onTap: () => context.push('/select-role'),
+              onTap: () {
+                ref.read(activeRoleProvider.notifier).deselect();
+                context.push('/select-role');
+              },
             ),
 
           _Tile(
@@ -62,7 +66,7 @@ class CustomerProfileScreen extends ConsumerWidget {
           _Tile(
             icon: Icons.home_outlined,
             title: 'ທີ່ຢູ່ທີ່ບັນທຶກ',
-            onTap: () {},
+            onTap: () => context.push('/customer/addresses'),
           ),
           _Tile(
             icon: Icons.help_outline,

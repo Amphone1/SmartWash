@@ -18,6 +18,7 @@ import '../features/customer/orders/rating_screen.dart';
 import '../features/customer/scan/scan_screen.dart';
 import '../features/customer/scan/scan_result_screen.dart';
 import '../features/customer/profile/profile_screen.dart';
+import '../features/customer/profile/addresses_screen.dart';
 import '../features/customer/topup/topup_screen.dart';
 import '../features/customer/delivery/delivery_track_screen.dart';
 import '../features/customer/delivery/delivery_request_screen.dart';
@@ -40,6 +41,50 @@ import '../features/staff/orders/staff_orders_screen.dart';
 import '../features/staff/slips/slips_screen.dart';
 import '../features/staff/profile/staff_profile_screen.dart';
 
+/// Pure redirect decision for the app router, extracted so the role/RBAC rules
+/// can be unit-tested without pumping the full widget tree. Returns the path to
+/// redirect to, or null to stay. Behaviour is identical to the inline guards
+/// the [routerProvider] redirect delegates to.
+String? resolveRedirect({
+  required AuthState auth,
+  required AppRole? role,
+  required String path,
+}) {
+  if (auth.isLoading) return null;
+
+  if (!auth.isAuthenticated) {
+    return path == '/login' ? null : '/login';
+  }
+
+  final user = auth.user!;
+  if (user.roles.isEmpty) return '/login';
+
+  if (user.hasMultipleRoles && role == null) {
+    return path == '/select-role' ? null : '/select-role';
+  }
+
+  final activeRole = role ?? user.roles.first;
+  final home = switch (activeRole) {
+    AppRole.customer => '/customer',
+    AppRole.driver => '/driver',
+    AppRole.staff => '/staff',
+  };
+
+  if (path.startsWith('/customer') && activeRole == AppRole.customer) return null;
+  if (path.startsWith('/driver') && activeRole == AppRole.driver) return null;
+  if (path.startsWith('/staff') && activeRole == AppRole.staff) return null;
+
+  // post-login / post-pick landing, OR a cross-role shell path -> active shell
+  if (path == '/login' || path == '/select-role' || path == '/' ||
+      path.startsWith('/customer') ||
+      path.startsWith('/driver') ||
+      path.startsWith('/staff')) {
+    return home;
+  }
+
+  return null;
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   final authListenable = ValueNotifier<AuthState>(ref.read(authProvider));
   final roleListenable = ValueNotifier<AppRole?>(ref.read(activeRoleProvider));
@@ -55,42 +100,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     refreshListenable: listenable,
-    redirect: (context, state) {
-      final auth = authListenable.value;
-      final role = roleListenable.value;
-      final path = state.matchedLocation;
-
-      if (auth.isLoading) return null;
-
-      if (!auth.isAuthenticated) {
-        return path == '/login' ? null : '/login';
-      }
-
-      final user = auth.user!;
-      if (user.roles.isEmpty) return '/login';
-
-      if (user.hasMultipleRoles && role == null) {
-        return path == '/select-role' ? null : '/select-role';
-      }
-
-      final activeRole = role ?? user.roles.first;
-
-      // Already on the right shell
-      if (path.startsWith('/customer') && activeRole == AppRole.customer) return null;
-      if (path.startsWith('/driver') && activeRole == AppRole.driver) return null;
-      if (path.startsWith('/staff') && activeRole == AppRole.staff) return null;
-
-      // Redirect to the correct shell root
-      if (path == '/login' || path == '/select-role' || path == '/') {
-        return switch (activeRole) {
-          AppRole.customer => '/customer',
-          AppRole.driver => '/driver',
-          AppRole.staff => '/staff',
-        };
-      }
-
-      return null;
-    },
+    redirect: (context, state) => resolveRedirect(
+      auth: authListenable.value,
+      role: roleListenable.value,
+      path: state.matchedLocation,
+    ),
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/select-role', builder: (_, __) => const RoleSelectScreen()),
@@ -128,6 +142,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const NotificationsScreen(),
       ),
       GoRoute(path: '/customer/topup', builder: (_, __) => const TopupScreen()),
+      GoRoute(
+        path: '/customer/addresses',
+        builder: (_, __) => const CustomerAddressesScreen(),
+      ),
       GoRoute(
         path: '/customer/topup/slip/:qrRef',
         builder: (_, s) =>
