@@ -76,7 +76,7 @@ export default function TrackDeliveryScreen() {
           {/* Map placeholder */}
           <View style={styles.mapPlaceholder}>
             <Ionicons name="map-outline" size={48} color={COLORS.textHint} />
-            <Text style={styles.mapText}>{delivery.distanceKm.toFixed(1)} km ຫ່າງ</Text>
+            <Text style={styles.mapText}>{(delivery.distanceKm ?? 0).toFixed(1)} km ຫ່າງ</Text>
           </View>
 
           {/* ETA banner */}
@@ -126,7 +126,7 @@ export default function TrackDeliveryScreen() {
           <View style={styles.driverCard}>
             <View style={styles.driverAvatar}>
               <Text style={styles.driverAvatarText}>
-                {delivery.driverName.charAt(0).toUpperCase()}
+                {(delivery.driverName ?? '?').charAt(0).toUpperCase()}
               </Text>
             </View>
             <View style={styles.driverInfo}>
@@ -136,7 +136,7 @@ export default function TrackDeliveryScreen() {
               </Text>
               <View style={styles.ratingRow}>
                 <Ionicons name="star" size={14} color={COLORS.amber} />
-                <Text style={styles.rating}>{delivery.driverRating.toFixed(1)}</Text>
+                <Text style={styles.rating}>{(delivery.driverRating ?? 0).toFixed(1)}</Text>
               </View>
             </View>
             <View style={styles.driverActions}>

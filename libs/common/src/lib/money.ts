@@ -78,6 +78,37 @@ export function applyBasisPoints(amount: Kip, bps: number): Kip {
   return (amount * BigInt(bps)) / 10000n;
 }
 
+export interface VatSplit {
+  /** revenue portion, VAT-exclusive (floored). */
+  net: Kip;
+  /** VAT portion; carries the rounding remainder (deterministic, recon-safe). */
+  vat: Kip;
+}
+
+/**
+ * Split a VAT-INCLUSIVE gross amount into { net, vat }, where `gross` already
+ * includes VAT at `vatBps` basis points OF THE NET — the same rate model as order
+ * pricing (`services/order/src/domain/pricing.ts`: total = net + applyBasisPoints(net, vatBps)).
+ *
+ *   net = floor(gross * 10000 / (10000 + vatBps))   (integer division, toward zero)
+ *   vat = gross - net                                (the floor remainder lands in VAT)
+ *
+ * Guarantees `net + vat === gross` exactly (recon-safe) and posts the rounding
+ * remainder to VAT (FINANCIAL_CONTRACT §1). Used by the ledger CAPTURE /
+ * REFUND_REVERSAL posting rules to derive the revenue/VAT split from the amount
+ * leaving the wallet.
+ */
+export function splitVatInclusive(gross: Kip, vatBps: number): VatSplit {
+  if (gross < 0n) {
+    throw new MoneyError(`gross must be non-negative, got ${gross}`);
+  }
+  if (!Number.isInteger(vatBps) || vatBps < 0) {
+    throw new MoneyError(`basis points must be a non-negative integer, got ${vatBps}`);
+  }
+  const net = (gross * 10000n) / (10000n + BigInt(vatBps)); // floor (gross >= 0)
+  return { net, vat: gross - net };
+}
+
 export function isNegative(amount: Kip): boolean {
   return amount < 0n;
 }

@@ -56,3 +56,9 @@ build-out/
 
 # Expo local state
 .expo/
+
+# Claude Code local harness config (personal/machine-specific — keep .claude/skills tracked)
+.claude/settings.json
+.claude/settings.local.json
+.agents/
+AGENTS.md

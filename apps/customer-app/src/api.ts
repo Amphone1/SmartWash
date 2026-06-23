@@ -1,8 +1,10 @@
 import Constants from 'expo-constants';
+import { resolveDevUrl } from './dev-host';
 
-const BASE_URL: string =
+const BASE_URL: string = resolveDevUrl(
   (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ??
-  'http://localhost:8088/api';
+    'http://localhost:8088/api',
+);
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -39,6 +41,46 @@ export interface Order {
   progressPct?: number;
   driverName?: string;
   driverRating?: number;
+}
+
+/**
+ * The BFF/order service returns { state, type, branchId, total, ... }. Map it to
+ * the screen-facing Order shape so a missing field can never crash a render
+ * (e.g. order.status.replace on undefined). Fields the API doesn't carry yet
+ * (weightKg, branchName, driver*) fall back to safe defaults.
+ */
+interface RawOrder {
+  id: string;
+  state?: string;
+  status?: string;
+  type?: string;
+  serviceType?: string;
+  branchId?: string;
+  branchName?: string;
+  total?: number;
+  pricePaid?: number;
+  weightKg?: number;
+  createdAt: string;
+  estimatedMinutes?: number;
+  progressPct?: number;
+  driverName?: string;
+  driverRating?: number;
+}
+
+function normalizeOrder(r: RawOrder): Order {
+  return {
+    id: r.id,
+    status: r.status ?? r.state ?? 'PENDING',
+    serviceType: r.serviceType ?? r.type ?? '',
+    weightKg: r.weightKg ?? 0,
+    branchName: r.branchName ?? r.branchId ?? '',
+    createdAt: r.createdAt,
+    pricePaid: r.pricePaid ?? r.total,
+    estimatedMinutes: r.estimatedMinutes,
+    progressPct: r.progressPct,
+    driverName: r.driverName,
+    driverRating: r.driverRating,
+  };
 }
 
 export interface Delivery {
@@ -154,17 +196,25 @@ export const api = {
       type: 'self_service' | 'pickup' | 'delivery';
       cycle?: 'quick' | 'normal' | 'heavy';
     },
-  ) => postIdem<Order>('/bff/orders', token, payload),
+  ) => postIdem<RawOrder>('/bff/orders', token, payload).then(normalizeOrder),
 
   joinQueue: (token: string, machineId: string) =>
     postIdem<{ queuePosition: number }>(`/bff/queues/${machineId}/join`, token),
 
   getOrder: (token: string, orderId: string) =>
-    get<Order>(`/bff/orders/${orderId}`, token),
+    get<RawOrder>(`/bff/orders/${orderId}`, token).then(normalizeOrder),
 
-  listOrders: (token: string) => get<Order[]>('/bff/orders', token),
+  listOrders: (token: string) =>
+    get<RawOrder[]>('/bff/orders', token).then((rows) => rows.map(normalizeOrder)),
 
-  getWallet: (token: string) => get<WalletBalance>('/bff/wallet', token),
+  getWallet: async (token: string): Promise<WalletBalance> => {
+    // BFF returns { balance, currency, ... } — normalise to balanceKip (kip).
+    const raw = await get<{ balance?: number; balanceKip?: number }>(
+      '/bff/wallet',
+      token,
+    );
+    return { balanceKip: raw.balanceKip ?? raw.balance ?? 0 };
+  },
 
   createTopupQr: (token: string, amountKip: number) =>
     postIdem<QrPayment>('/bff/payments', token, { type: 'topup', amount: amountKip }),

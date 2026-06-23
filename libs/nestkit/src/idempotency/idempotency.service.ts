@@ -52,11 +52,14 @@ export class IdempotencyService {
       return this.replay<T>(key, scope, requestHash);
     }
 
-    // We own this key — run the operation and persist its response.
+    // We own this key — run the operation and persist its response. A money
+    // result can carry bigint (kip, rule #1), which JSON.stringify rejects;
+    // serialize bigint as its decimal string (the same shape sent over the
+    // wire, so a replayed response matches the original JSON body).
     const result = await operation();
     await this.pool.query(
       `UPDATE idempotency_keys SET response = $2 WHERE key = $1`,
-      [key, JSON.stringify(result ?? null)],
+      [key, JSON.stringify(result ?? null, bigintSafeReplacer)],
     );
     return { result, replayed: false };
   }
@@ -87,4 +90,9 @@ export class IdempotencyService {
     }
     return { result: existing.response, replayed: true };
   }
+}
+
+/** JSON replacer: bigint → decimal string (JSON has no bigint; rule #1 money). */
+function bigintSafeReplacer(_key: string, value: unknown): unknown {
+  return typeof value === 'bigint' ? value.toString() : value;
 }

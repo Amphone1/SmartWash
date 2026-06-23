@@ -13,14 +13,20 @@ export interface PostInput {
   refType: string; // order | topup | refund | recon
   refId: string;
   idempotencyKey: string;
+  // A5 dual-write context (additive, optional). Used only to build the shadow
+  // double-entry mirror; absent → that flow's mirror is skipped. No effect on the
+  // authoritative legacy write.
+  branchId?: string;
+  vatBps?: number;
+  channel?: 'wash' | 'delivery';
 }
 
 export interface LedgerEntryView {
   id: number;
   userId: string;
   type: LedgerType;
-  amount: number;
-  balanceAfter: number;
+  amount: bigint;
+  balanceAfter: bigint;
   refType: string | null;
   refId: string | null;
   createdAt: string;

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
+import { resolveDevUrl } from './dev-host';
 
 const TOKEN_KEY = 'sw_token';
 
@@ -21,9 +22,10 @@ const tokenStore = {
       : SecureStore.deleteItemAsync(k),
 };
 
-const KEYCLOAK_URL: string =
+const KEYCLOAK_URL: string = resolveDevUrl(
   (Constants.expoConfig?.extra?.keycloakUrl as string | undefined) ??
-  'http://localhost:8080';
+    'http://localhost:8080',
+);
 
 interface AuthContextValue {
   token: string | null;

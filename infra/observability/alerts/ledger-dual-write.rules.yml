@@ -1,0 +1,41 @@
+# A5 dual-write / shadow-reconcile alerts. Loaded via prometheus.yml `rule_files`.
+# These guard the shadow bake: drift PAGES (it is the cutover blocker); error-rate and
+# stall warn. All are inert until the dual-write flags are enabled (metrics stay at 0).
+groups:
+  - name: ledger-dual-write
+    rules:
+      - alert: LedgerDualWriteDrift
+        expr: increase(ledger_shadow_drift_total[5m]) > 0
+        for: 0m
+        labels: { severity: page, team: payments }
+        annotations:
+          summary: "Ledger shadow drift detected (new ledger != legacy wallet)"
+          description: "ledger_shadow_drift_total increased on flow {{ $labels.flow }} — investigate before any cutover. Mitigate: set LEDGER_DUAL_WRITE_MODE=off."
+
+      - alert: LedgerDualWriteErrorRate
+        expr: |
+          rate(ledger_dual_write_error_total[5m])
+            / clamp_min(rate(ledger_dual_write_total[5m]), 1) > 0.01
+        for: 10m
+        labels: { severity: warning, team: payments }
+        annotations:
+          summary: "Dual-write mirror error rate > 1% (fail-open skips)"
+          description: "flow {{ $labels.flow }} mirror is failing open; legacy unaffected but coverage is degraded."
+
+      - alert: LedgerDualWriteLatency
+        expr: histogram_quantile(0.99, sum by (le, flow) (rate(ledger_dual_write_latency_seconds_bucket[5m]))) > 0.25
+        for: 10m
+        labels: { severity: warning, team: payments }
+        annotations:
+          summary: "Dual-write mirror p99 latency high"
+          description: "flow {{ $labels.flow }} mirror p99 > 250ms — consider disabling the flow."
+
+      - alert: LedgerDualWriteStalled
+        expr: |
+          (rate(ledger_dual_write_total[10m]) == 0)
+            and on() (rate(http_request_duration_seconds_count{route="/ledger/post"}[10m]) > 0)
+        for: 15m
+        labels: { severity: warning, team: payments }
+        annotations:
+          summary: "Dual-write enabled but no mirror activity while legacy writes flow"
+          description: "Possible silent-off / missing-context: ledger writes are happening but the mirror is idle."

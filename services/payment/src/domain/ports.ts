@@ -9,7 +9,7 @@ export interface PaymentRequest {
   orderId: string | null;
   type: PayReqType;
   qrRef: string;
-  amountExpected: number; // kip
+  amountExpected: bigint; // kip
   state: PayReqState;
   expiresAt: string;
   createdAt: string;
@@ -18,9 +18,25 @@ export interface PaymentRequest {
 export interface SlipStatus {
   qrRef: string;
   state: PayReqState;
-  ocrAmount: number | null;
+  ocrAmount: bigint | null;
   ocrConfidence: number | null;
   fraudState: FraudState | null;
+}
+
+/** A payment parked in AWAITING_APPROVAL, for the staff/owner review queue. */
+export interface ReviewItem {
+  qrRef: string;
+  type: PayReqType;
+  amountExpected: bigint;
+  userId: string;
+  userName: string;
+  /** The order's branch; NULL for a topup (which has no order/branch). */
+  branchId: string | null;
+  ocrAmount: bigint | null;
+  ocrConfidence: number | null;
+  fraudState: FraudState | null;
+  imageObjectKey: string | null;
+  createdAt: string;
 }
 
 export interface CreateRequestInput {
@@ -29,12 +45,12 @@ export interface CreateRequestInput {
   type: PayReqType;
   orderId: string | null;
   qrRef: string;
-  amountExpected: number;
+  amountExpected: bigint;
   expiresAt: string;
 }
 
 export interface OcrFields {
-  amount: number;
+  amount: bigint;
   ref: string;
   account: string;
   confidence: number;
@@ -60,5 +76,12 @@ export interface PaymentRepository {
     reason: string | null,
   ): Promise<PaymentRequest>;
   getStatus(qrRef: string): Promise<SlipStatus | null>;
+  /** Payments parked in AWAITING_APPROVAL; branch null = all branches (admin). */
+  listPendingReview(branchId: string | null): Promise<ReviewItem[]>;
+  /**
+   * The branch a slip belongs to (its order's branch), for approval scoping.
+   * Returns null branchId for a topup (no order). `null` = qrRef not found.
+   */
+  reviewBranch(qrRef: string): Promise<{ branchId: string | null } | null>;
 }
 export const PAYMENT_REPOSITORY = Symbol('PAYMENT_REPOSITORY');

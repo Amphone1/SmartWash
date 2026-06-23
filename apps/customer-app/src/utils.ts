@@ -1,5 +1,5 @@
-export function formatKip(amount: number): string {
-  return '₭' + amount.toLocaleString('en-US');
+export function formatKip(amount: number | null | undefined): string {
+  return '₭' + (amount ?? 0).toLocaleString('en-US');
 }
 
 export function errorMessage(e: unknown): string {

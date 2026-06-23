@@ -2,7 +2,7 @@
   "name": "@smartwash/customer-app",
   "version": "0.0.0",
   "private": true,
-  "description": "SmartWash customer app (Expo / React Native). Standalone — install separately.",
+  "description": "[LEGACY/reference-only] SmartWash customer app (Expo / React Native). Standalone — install separately. Primary mobile app is apps/smartwash-app (Flutter); see docs/MOBILE_CUTOVER.md.",
   "main": "expo-router/entry",
   "nx": {
     "includedScripts": []
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "babel-preset-expo": "~54.0.10",
     "expo": "^54.0.0",
     "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.13",

@@ -52,6 +52,8 @@ export interface CreateOrderData {
 export interface OrderRepository {
   create(data: CreateOrderData): Promise<OrderRecord>;
   findById(id: string): Promise<OrderRecord | null>;
+  /** A user's own orders, newest first (capped). */
+  listForUser(userId: string): Promise<OrderRecord[]>;
   transition(
     id: string,
     from: OrderState,

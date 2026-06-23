@@ -133,25 +133,37 @@ export class PaymentClient {
       { userId },
     );
   }
-  approveSlip(idempotencyKey: string, userId: string, slipId: string): Promise<unknown> {
+  /** Admin-global review queue: no branchId → all branches incl. topup slips. */
+  listSlipsAll(userId: string, status?: string): Promise<unknown> {
+    const qs = status ? `?${new URLSearchParams({ status }).toString()}` : '';
     return callService(
       this.cfg.paymentUrl,
-      `/internal/slips/${slipId}/approve`,
+      `/internal/slips${qs}`,
       this.cfg.internalToken,
-      { method: 'POST', idempotencyKey, userId },
+      { userId },
+    );
+  }
+  // Manual review reuses the existing saga-wired endpoint, keyed by qrRef:
+  // staff-decision → payment.approved/rejected event → topup saga → ledger TOPUP.
+  approveSlip(idempotencyKey: string, userId: string, qrRef: string): Promise<unknown> {
+    return callService(
+      this.cfg.paymentUrl,
+      `/internal/payments/${encodeURIComponent(qrRef)}/staff-decision`,
+      this.cfg.internalToken,
+      { method: 'POST', body: { decision: 'approve' }, idempotencyKey, userId },
     );
   }
   rejectSlip(
     idempotencyKey: string,
     userId: string,
-    slipId: string,
-    reason: string,
+    qrRef: string,
+    _reason: string,
   ): Promise<unknown> {
     return callService(
       this.cfg.paymentUrl,
-      `/internal/slips/${slipId}/reject`,
+      `/internal/payments/${encodeURIComponent(qrRef)}/staff-decision`,
       this.cfg.internalToken,
-      { method: 'POST', body: { reason }, idempotencyKey, userId },
+      { method: 'POST', body: { decision: 'reject' }, idempotencyKey, userId },
     );
   }
 }

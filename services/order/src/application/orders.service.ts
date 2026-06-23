@@ -124,6 +124,11 @@ export class OrdersService {
     return toView(order);
   }
 
+  async listForUser(userId: string): Promise<OrderView[]> {
+    const orders = await this.repo.listForUser(userId);
+    return orders.map(toView);
+  }
+
   /**
    * Explicit "start wash" — the user confirms; emits wash_requested so the
    * wash_order saga begins (which deducts the wallet). Money never moves before

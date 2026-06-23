@@ -16,8 +16,8 @@ export type RejectReason =
 export interface FraudInput {
   duplicate: boolean; // slip_hash already seen (soft; DB UNIQUE is the hard guard)
   accountMatch: boolean; // OCR account == branch owner_account
-  amountExpected: number; // kip the QR was issued for
-  ocrAmount: number; // kip OCR read
+  amountExpected: bigint; // kip the QR was issued for
+  ocrAmount: bigint; // kip OCR read
   ocrConfidence: number; // 0..1
   riskScore: number; // 0..100
   riskBand: 'low' | 'medium' | 'high';
@@ -29,14 +29,17 @@ export interface FraudDecision {
 }
 
 export const CONFIDENCE_MIN = 0.85;
-export const AMOUNT_TOLERANCE_KIP = 0; // topup must match the QR amount exactly
+export const AMOUNT_TOLERANCE_KIP = 0n; // topup must match the QR amount exactly
 const RISK_HIGH = 70;
 const RISK_MEDIUM = 30;
 
 export function decide(i: FraudInput): FraudDecision {
   if (i.duplicate) return { state: 'REJECT', reason: 'duplicate' };
   if (!i.accountMatch) return { state: 'REJECT', reason: 'wrong_account' };
-  if (Math.abs(i.ocrAmount - i.amountExpected) > AMOUNT_TOLERANCE_KIP) {
+  const diff = i.ocrAmount >= i.amountExpected
+    ? i.ocrAmount - i.amountExpected
+    : i.amountExpected - i.ocrAmount;
+  if (diff > AMOUNT_TOLERANCE_KIP) {
     return { state: 'REJECT', reason: 'amount_mismatch' };
   }
   if (i.riskBand === 'high' || i.riskScore >= RISK_HIGH) {

@@ -30,6 +30,15 @@ import { LedgerService } from '../application/ledger.service';
 import { PostEntryDto, RefundDto } from './dto';
 import type { LedgerEntryView } from '../domain/ledger';
 
+type LedgerEntryJson = Omit<LedgerEntryView, 'amount' | 'balanceAfter'> & {
+  amount: number;
+  balanceAfter: number;
+};
+
+function toJson(e: LedgerEntryView): LedgerEntryJson {
+  return { ...e, amount: Number(e.amount), balanceAfter: Number(e.balanceAfter) };
+}
+
 @Controller()
 export class LedgerController {
   constructor(private readonly ledger: LedgerService) {}
@@ -40,7 +49,7 @@ export class LedgerController {
     @Headers('idempotency-key') key: string | undefined,
     @Body() body: PostEntryDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<LedgerEntryView> {
+  ): Promise<LedgerEntryJson> {
     if (!key) throw new ValidationError('Idempotency-Key header is required');
     const { entry, replayed } = await this.ledger.post({
       userId: body.userId,
@@ -49,9 +58,12 @@ export class LedgerController {
       refType: body.refType,
       refId: body.refId,
       idempotencyKey: key,
+      branchId: body.branchId,
+      vatBps: body.vatBps,
+      channel: body.channel,
     });
     res.status(replayed ? 200 : 201);
-    return entry;
+    return toJson(entry);
   }
 
   @Post('ledger/refund')
@@ -60,7 +72,7 @@ export class LedgerController {
     @Headers('idempotency-key') key: string | undefined,
     @Body() body: RefundDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<LedgerEntryView & { refundId: string }> {
+  ): Promise<LedgerEntryJson & { refundId: string }> {
     if (!key) throw new ValidationError('Idempotency-Key header is required');
     const { entry, refundId, replayed } = await this.ledger.refund({
       userId: body.userId,
@@ -69,27 +81,30 @@ export class LedgerController {
       type: body.type,
       reason: body.reason,
       idempotencyKey: key,
+      branchId: body.branchId,
+      vatBps: body.vatBps,
     });
     res.status(replayed ? 200 : 201);
-    return { ...entry, refundId };
+    return { ...toJson(entry), refundId };
   }
 
   @Get('wallets/:userId/entries')
   @UseGuards(InternalTokenGuard, RbacGuard)
   @RequirePermission('wallet.view.own')
-  entries(
+  async entries(
     @Param('userId', new ParseUUIDPipe()) userId: string,
     @Headers(USER_ID_HEADER) callerId: string | undefined,
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
-  ): Promise<LedgerEntryView[]> {
+  ): Promise<LedgerEntryJson[]> {
     if (!callerId || callerId !== userId) {
       throw new ForbiddenError('can only view your own entries');
     }
-    return this.ledger.listEntries(
+    const views = await this.ledger.listEntries(
       userId,
       limit ? Number.parseInt(limit, 10) : 50,
       cursor ? Number.parseInt(cursor, 10) : null,
     );
+    return views.map(toJson);
   }
 }

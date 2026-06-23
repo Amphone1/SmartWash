@@ -16,6 +16,7 @@ export interface BranchView {
 
 export interface MachineView {
   id: string;
+  branchId: string;
   code: string;
   type: string;
   capacityKg: number;
@@ -52,7 +53,7 @@ export class CatalogRepository {
 
   async listMachines(branchId: string): Promise<MachineView[]> {
     const { rows } = await this.db.getPool().query(
-      `SELECT m.id, m.code, m.type, m.capacity_kg, m.price,
+      `SELECT m.id, m.branch_id, m.code, m.type, m.capacity_kg, m.price,
               COALESCE(ms.state, 'OFFLINE') AS state
          FROM machines m
          LEFT JOIN machine_status ms ON ms.machine_id = m.id
@@ -62,11 +63,34 @@ export class CatalogRepository {
     );
     return rows.map((r) => ({
       id: r.id,
+      branchId: r.branch_id,
       code: r.code,
       type: r.type,
       capacityKg: r.capacity_kg,
       price: Number(r.price),
       state: r.state,
     }));
+  }
+
+  async findMachineById(machineId: string): Promise<MachineView | null> {
+    const { rows } = await this.db.getPool().query(
+      `SELECT m.id, m.branch_id, m.code, m.type, m.capacity_kg, m.price,
+              COALESCE(ms.state, 'OFFLINE') AS state
+         FROM machines m
+         LEFT JOIN machine_status ms ON ms.machine_id = m.id
+        WHERE m.id = $1`,
+      [machineId],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      id: row.id,
+      branchId: row.branch_id,
+      code: row.code,
+      type: row.type,
+      capacityKg: row.capacity_kg,
+      price: Number(row.price),
+      state: row.state,
+    };
   }
 }

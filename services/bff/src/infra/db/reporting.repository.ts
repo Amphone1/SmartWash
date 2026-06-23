@@ -193,26 +193,22 @@ export class ReportingRepository {
 
   async driverEarnings(driverId: string): Promise<DriverEarnings> {
     const pool = this.db.getPool();
-    const [today, week, month] = await Promise.all([
+    // settlement_lines has no timestamp; the period lives on the parent
+    // settlements row (period_date). Join and filter on that.
+    const earned = (unit: 'day' | 'week' | 'month') =>
       pool.query<{ kip: string; trips: string }>(
-        `SELECT COALESCE(SUM(amount),0) AS kip, COUNT(*) AS trips
-           FROM settlement_lines
-          WHERE driver_id = $1
-            AND created_at >= date_trunc('day', now())`,
-        [driverId],
-      ),
-      pool.query<{ kip: string }>(
-        `SELECT COALESCE(SUM(amount),0) AS kip
-           FROM settlement_lines WHERE driver_id = $1
-            AND created_at >= date_trunc('week', now())`,
-        [driverId],
-      ),
-      pool.query<{ kip: string }>(
-        `SELECT COALESCE(SUM(amount),0) AS kip
-           FROM settlement_lines WHERE driver_id = $1
-            AND created_at >= date_trunc('month', now())`,
-        [driverId],
-      ),
+        `SELECT COALESCE(SUM(sl.amount),0) AS kip,
+                COALESCE(SUM(sl.trips),0)  AS trips
+           FROM settlement_lines sl
+           JOIN settlements s ON s.id = sl.settlement_id
+          WHERE sl.driver_id = $1
+            AND s.period_date >= date_trunc($2, now())::date`,
+        [driverId, unit],
+      );
+    const [today, week, month] = await Promise.all([
+      earned('day'),
+      earned('week'),
+      earned('month'),
     ]);
     return {
       todayKip: Number(today.rows[0]?.kip ?? 0),

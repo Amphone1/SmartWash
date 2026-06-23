@@ -1,4 +1,11 @@
-import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { BffAuthGuard } from './auth.guard';
 import {
   CatalogRepository,
@@ -22,5 +29,15 @@ export class CatalogController {
     @Param('branchId', new ParseUUIDPipe()) branchId: string,
   ): Promise<MachineView[]> {
     return this.catalog.listMachines(branchId);
+  }
+
+  @Get('machines/:machineId')
+  machine(
+    @Param('machineId', new ParseUUIDPipe()) machineId: string,
+  ): Promise<MachineView> {
+    return this.catalog.findMachineById(machineId).then((machine) => {
+      if (!machine) throw new NotFoundException('machine not found');
+      return machine;
+    });
   }
 }

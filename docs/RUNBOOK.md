@@ -136,7 +136,28 @@ K6_TOKEN=<jwt> BRANCH_ID=<uuid> MACHINE_ID=<uuid> k6 run tools/k6/wash.js
 
 ## 6. UI testing (browser + real device)
 
-**Browser (portals + Expo web).** One-time, as Administrator:
+**Primary mobile app — Flutter super app (`apps/smartwash-app`).** This is the
+canonical mobile app (Customer · Driver · Staff in one login). Run it against the
+gateway:
+
+```bash
+cd apps/smartwash-app
+flutter pub get
+# Android emulator (10.0.2.2 = host loopback)
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8088/api \
+            --dart-define=KEYCLOAK_URL=http://10.0.2.2:8080
+# iOS simulator uses 127.0.0.1; physical device uses the LAN_IP below.
+```
+
+Dev users below work here too; role(s) come from `realm_access.roles`. Driver map
+needs `--dart-define=GOOGLE_MAPS_KEY=<key>` (placeholder tile without it). See
+`apps/smartwash-app/README.md` and `docs/MOBILE_CUTOVER.md`.
+
+> The Expo `customer-app` / `driver-app` instructions below are **legacy /
+> reference-only** (apps retiring — see `docs/MOBILE_CUTOVER.md`). Use the Flutter
+> app for new testing.
+
+**Browser (portals + legacy Expo web).** One-time, as Administrator:
 `Add-Content C:\Windows\System32\drivers\etc\hosts "127.0.0.1 keycloak"` — the
 UIs log in at `http://keycloak:8080` so the token issuer matches what the auth
 service validates. Then `npm run dev` in `apps/owner-portal` / `apps/admin-portal`
@@ -145,7 +166,8 @@ service validates. Then `npm run dev` in `apps/owner-portal` / `apps/admin-porta
 `dev-cors` middleware + Keycloak `webOrigins` already allow these origins.
 Dev users: 205550{1..4}001 / `dev-pass-<phone>` (customer/driver/owner/admin).
 
-**Real device (Expo Go).** The phone can't resolve `keycloak`, so pin Keycloak's
+**Real device (legacy Expo Go).** For the Flutter app, `flutter run` on a connected
+device with the LAN_IP defines above. The legacy Expo flow: the phone can't resolve `keycloak`, so pin Keycloak's
 public hostname to this machine's LAN IP (one issuer for every client):
 
 ```powershell

@@ -4,6 +4,7 @@ import {
   subtract,
   multiply,
   applyBasisPoints,
+  splitVatInclusive,
   canCover,
   formatKip,
   isNegative,
@@ -66,6 +67,41 @@ describe('money (kip / bigint)', () => {
 
     it('rejects negative basis points', () => {
       expect(() => applyBasisPoints(toKip(1000), -100)).toThrow(MoneyError);
+    });
+  });
+
+  describe('splitVatInclusive', () => {
+    it('splits a clean VAT-inclusive gross (10% of net)', () => {
+      // net 20,000 + 10% VAT 2,000 = 22,000 gross
+      expect(splitVatInclusive(toKip(22000), 1000)).toEqual({ net: 20000n, vat: 2000n });
+    });
+
+    it('always satisfies net + vat === gross (recon-safe)', () => {
+      for (const g of [1n, 7n, 999n, 22001n, 123457n]) {
+        const { net, vat } = splitVatInclusive(g, 1000);
+        expect(net + vat).toBe(g);
+      }
+    });
+
+    it('posts the floor remainder to VAT', () => {
+      // gross 22,001 @ 10%: net = floor(22001*10000/11000) = floor(20000.9) = 20000;
+      // vat = 2,001 (carries the remainder)
+      expect(splitVatInclusive(toKip(22001), 1000)).toEqual({ net: 20000n, vat: 2001n });
+    });
+
+    it('vatBps = 0 → all net, no VAT', () => {
+      expect(splitVatInclusive(toKip(15000), 0)).toEqual({ net: 15000n, vat: 0n });
+    });
+
+    it('keeps precision past 2^53', () => {
+      const g = 9007199254740993n; // 2^53 + 1
+      const { net, vat } = splitVatInclusive(g, 1000);
+      expect(net + vat).toBe(g);
+    });
+
+    it('rejects a negative gross and negative bps', () => {
+      expect(() => splitVatInclusive(-1n, 1000)).toThrow(MoneyError);
+      expect(() => splitVatInclusive(toKip(1000), -1)).toThrow(MoneyError);
     });
   });
 

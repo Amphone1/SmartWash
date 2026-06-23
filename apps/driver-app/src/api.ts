@@ -1,8 +1,10 @@
 import Constants from 'expo-constants';
+import { resolveDevUrl } from './dev-host';
 
-const BASE_URL: string =
+const BASE_URL: string = resolveDevUrl(
   (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ??
-  'http://localhost:8088/api';
+    'http://localhost:8088/api',
+);
 
 export interface DriverTask {
   id: string;
@@ -89,8 +91,8 @@ export const api = {
   acceptTask: (id: string) => call<void>(`/bff/driver/deliveries/${id}/accept`, 'POST'),
   rejectTask: (id: string) => call<void>(`/bff/driver/deliveries/${id}/reject`, 'POST'),
   advanceTask: (id: string, state: string) =>
-    call<void>(`/bff/driver/deliveries/${id}/state`, 'POST', { state }),
+    call<void>(`/bff/driver/deliveries/${id}/advance`, 'POST', { to: state }),
   updateLocation: (lat: number, lon: number) =>
-    call<void>('/bff/driver/location', 'POST', { lat, lon }),
+    call<void>('/bff/driver/location', 'POST', { lat, lng: lon }),
   getEarnings: () => call<EarningsData>('/bff/driver/earnings'),
 };

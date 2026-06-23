@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Network -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Camera (QR scanning) -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+
+    <!-- Location (driver mode) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <application
+        android:label="SmartWash"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+
+            <!-- Deep links for notification taps -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="smartwash"/>
+            </intent-filter>
+        </activity>
+
+        <!-- Camera provider for mobile_scanner -->
+        <provider
+            android:name="androidx.camera.core.impl.CameraFactory"
+            android:authorities="${applicationId}.cameraProvider"
+            android:exported="false"/>
+
+        <!-- Google Maps API key — injected from --dart-define=GOOGLE_MAPS_KEY=... -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${googleMapsKey}"/>
+
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2"/>
+    </application>
+</manifest>

@@ -1,0 +1,44 @@
+{
+  "name": "smartwash-app",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/smartwash-app/lib",
+  "tags": ["scope:mobile", "platform:flutter"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "flutter build apk --release",
+        "cwd": "apps/smartwash-app"
+      }
+    },
+    "build-ios": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "flutter build ios --release --no-codesign",
+        "cwd": "apps/smartwash-app"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "flutter run",
+        "cwd": "apps/smartwash-app"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "flutter test",
+        "cwd": "apps/smartwash-app"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "flutter analyze",
+        "cwd": "apps/smartwash-app"
+      }
+    }
+  }
+}

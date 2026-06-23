@@ -5,6 +5,7 @@ import type {
   OcrFields,
   PaymentRepository,
   PaymentRequest,
+  ReviewItem,
   SlipStatus,
 } from '../domain/ports';
 import type { PayReqState } from '../domain/payment-fsm';
@@ -66,6 +67,33 @@ class FakeRepo implements PaymentRepository {
       fraudState: null,
     };
   }
+  async listPendingReview(branchId: string | null): Promise<ReviewItem[]> {
+    const items: ReviewItem[] = [];
+    for (const req of this.reqs.values()) {
+      if (req.state !== 'AWAITING_APPROVAL') continue;
+      // The fake has no orders table → treat every parked payment as a topup
+      // (branchId null), which is exactly what an admin/global list returns.
+      items.push({
+        qrRef: req.qrRef,
+        type: req.type,
+        amountExpected: req.amountExpected,
+        userId: req.userId,
+        userName: 'Test User',
+        branchId: null,
+        ocrAmount: null,
+        ocrConfidence: null,
+        fraudState: null,
+        imageObjectKey: null,
+        createdAt: req.createdAt,
+      });
+    }
+    return branchId === null ? items : items.filter((i) => i.branchId === branchId);
+  }
+  async reviewBranch(qrRef: string): Promise<{ branchId: string | null } | null> {
+    const req = this.reqs.get(qrRef);
+    if (!req) return null;
+    return { branchId: null }; // fake: topup-only, no branch
+  }
 }
 
 class FakeIdem {
@@ -91,10 +119,10 @@ describe('PaymentService', () => {
     const { svc } = make();
     const res = await svc.createPayment(randomUUID(), USER, {
       type: 'topup',
-      amount: 20000,
+      amount: 20000n,
     });
     expect(res.qrRef).toMatch(/^QR-/);
-    expect(res.amount).toBe(20000);
+    expect(res.amount).toBe(20000n);
     expect(res.qrPayload).toContain('20000');
     expect(new Date(res.expiresAt).getTime()).toBeGreaterThan(Date.now());
   });
@@ -102,7 +130,7 @@ describe('PaymentService', () => {
   it('requires orderId when type = order', async () => {
     const { svc } = make();
     await expect(
-      svc.createPayment(randomUUID(), USER, { type: 'order', amount: 1000 }),
+      svc.createPayment(randomUUID(), USER, { type: 'order', amount: 1000n }),
     ).rejects.toMatchObject({ code: 'validation_error' });
   });
 
@@ -110,7 +138,7 @@ describe('PaymentService', () => {
     const { svc } = make();
     const { qrRef } = await svc.createPayment(randomUUID(), USER, {
       type: 'topup',
-      amount: 20000,
+      amount: 20000n,
     });
     const hash = 'a'.repeat(64);
     const status = await svc.uploadSlip(randomUUID(), qrRef, USER, 'key1', hash);
@@ -124,7 +152,7 @@ describe('PaymentService', () => {
     const { svc } = make();
     const { qrRef } = await svc.createPayment(randomUUID(), USER, {
       type: 'topup',
-      amount: 20000,
+      amount: 20000n,
     });
     await svc.uploadSlip(randomUUID(), qrRef, USER, 'key', 'b'.repeat(64));
     const status = await svc.applyDecision(qrRef, 'PASS', null);
@@ -135,7 +163,7 @@ describe('PaymentService', () => {
     const { svc } = make();
     const { qrRef } = await svc.createPayment(randomUUID(), USER, {
       type: 'topup',
-      amount: 20000,
+      amount: 20000n,
     });
     await svc.uploadSlip(randomUUID(), qrRef, USER, 'key', 'c'.repeat(64));
     expect((await svc.applyDecision(qrRef, 'MANUAL_REVIEW', null)).state).toBe(
@@ -144,11 +172,32 @@ describe('PaymentService', () => {
     expect((await svc.staffDecision(qrRef, 'approve')).state).toBe('APPROVED');
   });
 
+  it('lists parked payments for review and resolves a topup branch as null', async () => {
+    const { svc } = make();
+    const { qrRef } = await svc.createPayment(randomUUID(), USER, {
+      type: 'topup',
+      amount: 20000n,
+    });
+    await svc.uploadSlip(randomUUID(), qrRef, USER, 'key', 'd'.repeat(64));
+    await svc.applyDecision(qrRef, 'MANUAL_REVIEW', null);
+
+    const queue = await svc.listPendingReview(null);
+    expect(queue.map((i) => i.qrRef)).toContain(qrRef);
+    expect(await svc.reviewBranch(qrRef)).toBeNull(); // topup → no branch
+  });
+
+  it('reviewBranch throws (404) for an unknown qrRef', async () => {
+    const { svc } = make();
+    await expect(svc.reviewBranch('QR-nope')).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
   it('forbids viewing another user\'s payment', async () => {
     const { svc } = make();
     const { qrRef } = await svc.createPayment(randomUUID(), USER, {
       type: 'topup',
-      amount: 20000,
+      amount: 20000n,
     });
     await expect(svc.getStatus(qrRef, 'someone-else')).rejects.toMatchObject({
       status: 403,
