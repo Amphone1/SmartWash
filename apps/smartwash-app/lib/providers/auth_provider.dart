@@ -10,7 +10,7 @@ import 'role_provider.dart';
 // ─── Infrastructure providers ───────────────────────────────────────────────
 
 final tokenStoreProvider = Provider<TokenStore>(
-  (ref) => TokenStore(const FlutterSecureStorage()),
+  (ref) => const TokenStore(FlutterSecureStorage()),
 );
 
 final appConfigProvider = Provider<AppConfig>(

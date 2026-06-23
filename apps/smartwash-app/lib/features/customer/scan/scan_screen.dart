@@ -106,7 +106,7 @@ class _ScanScreenState extends State<ScanScreen> {
           ),
 
           // Corner-bracket scanning frame
-          Center(
+          const Center(
             child: _ScanFrame(size: 260),
           ),
 

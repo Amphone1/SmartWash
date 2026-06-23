@@ -157,11 +157,11 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
                   color: SwColors.primaryLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
+                child: const Row(
                   children: [
-                    const Icon(Icons.info_outline, size: 16, color: SwColors.primary),
-                    const SizedBox(width: 8),
-                    const Expanded(
+                    Icon(Icons.info_outline, size: 16, color: SwColors.primary),
+                    SizedBox(width: 8),
+                    Expanded(
                       child: Text(
                         'ຫຼັງຈາກໂອນເງິນແລ້ວ ກະລຸນາອັບໂຫລດສະລິ໋ປ',
                         style: TextStyle(fontSize: 13),

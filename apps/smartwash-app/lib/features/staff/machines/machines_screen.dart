@@ -101,7 +101,7 @@ class _MachineCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('ຄວາມຄືບໜ້າ', style: SwTypography.caption),
+                const Text('ຄວາມຄືບໜ້າ', style: SwTypography.caption),
                 Text('$progressPct%', style: SwTypography.caption),
               ],
             ),

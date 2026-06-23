@@ -90,10 +90,10 @@ class _OrderConfirmScreenState extends ConsumerState<OrderConfirmScreen> {
                 color: SwColors.primaryLight,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(Icons.info_outline, size: 16, color: SwColors.primary),
-                  const SizedBox(width: 8),
+                  Icon(Icons.info_outline, size: 16, color: SwColors.primary),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'ເງິນຈະຖືກຫັກຈາກກະເປົ໋າເງິນຂອງທ່ານໂດຍອັດຕະໂນມັດ',

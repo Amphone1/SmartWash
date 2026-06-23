@@ -75,7 +75,7 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
+            const Text(
               'ທ່ານພໍໃຈຫຼາຍປານໃດ?',
               style: SwTypography.heading2,
               textAlign: TextAlign.center,

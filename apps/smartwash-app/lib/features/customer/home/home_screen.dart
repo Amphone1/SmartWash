@@ -67,7 +67,7 @@ class HomeScreen extends ConsumerWidget {
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'ສະບາຍດີ 👋',
                     style: SwTypography.bodySmall,
                   ),

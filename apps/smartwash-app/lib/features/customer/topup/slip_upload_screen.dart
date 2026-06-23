@@ -91,13 +91,13 @@ class _SlipUploadScreenState extends ConsumerState<SlipUploadScreen> {
                   children: [
                     const Icon(Icons.check_circle, color: SwColors.success, size: 48),
                     const SizedBox(height: 12),
-                    Text(
+                    const Text(
                       'ສ່ງສະລິ໋ປສໍາເລັດ',
                       style: SwTypography.heading3,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 6),
-                    Text(
+                    const Text(
                       'ທີມງານຈະກວດສອບ ແລະ ເຕີມຍອດໃຫ້ທ່ານໃນໄວໆນີ້',
                       style: SwTypography.bodySmall,
                       textAlign: TextAlign.center,

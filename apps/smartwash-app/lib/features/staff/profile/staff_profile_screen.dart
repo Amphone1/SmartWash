@@ -52,7 +52,7 @@ class StaffProfileScreen extends ConsumerWidget {
           if ((user?.roles.length ?? 0) > 1)
             ListTile(
               leading: const Icon(Icons.swap_horiz, color: SwColors.textMuted),
-              title: Text('ສ່ຽງໂໝດ', style: SwTypography.body),
+              title: const Text('ສ່ຽງໂໝດ', style: SwTypography.body),
               trailing: const Icon(Icons.chevron_right, color: SwColors.textHint),
               onTap: () {
                 ref.read(activeRoleProvider.notifier).deselect();

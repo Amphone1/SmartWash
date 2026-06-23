@@ -71,13 +71,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
+              const Text(
                 'SmartWash',
                 style: SwTypography.heading1,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 6),
-              Text(
+              const Text(
                 'ເຂົ້າສູ່ລະບົບ',
                 style: SwTypography.body,
                 textAlign: TextAlign.center,

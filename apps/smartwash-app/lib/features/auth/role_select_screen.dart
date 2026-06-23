@@ -36,7 +36,7 @@ class RoleSelectScreen extends ConsumerWidget {
                 style: SwTypography.heading2,
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'ບັນຊີຂອງທ່ານມີຫຼາຍໂໝດ. ເລືອກໂໝດທີ່ຕ້ອງການ:',
                 style: SwTypography.body,
               ),

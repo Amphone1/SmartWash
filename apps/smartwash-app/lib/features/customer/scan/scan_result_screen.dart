@@ -186,12 +186,12 @@ class _MachineBody extends StatelessWidget {
                 color: SwColors.warningLight,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(Icons.info_outline,
+                  Icon(Icons.info_outline,
                       size: 16, color: SwColors.warning),
-                  const SizedBox(width: 8),
-                  const Expanded(
+                  SizedBox(width: 8),
+                  Expanded(
                     child: Text(
                       'ເຄື່ອງນີ້ບໍ່ວ່າງໃນຕອນນີ້',
                       style: TextStyle(
